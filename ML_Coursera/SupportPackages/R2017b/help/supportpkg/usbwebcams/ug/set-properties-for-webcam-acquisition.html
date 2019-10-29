@@ -1,0 +1,235 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" itemscope itemtype="http://www.mathworks.com/help/schema/MathWorksDocPage">
+<head>
+<meta xmlns="http://www.w3.org/1999/xhtml" charset="utf-8"></meta>
+<meta xmlns="http://www.w3.org/1999/xhtml" name="viewport" content="width=device-width, initial-scale=1.0"></meta>
+<meta xmlns="http://www.w3.org/1999/xhtml" http-equiv="X-UA-Compatible" content="IE=edge"></meta>
+<title>Set Properties for Webcam Acquisition</title>
+<link xmlns="http://www.w3.org/1999/xhtml" rel="stylesheet" href="docstyle.css" type="text/css"></link><link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/bootstrap.min.css" rel="stylesheet" type="text/css"></link>
+
+
+  <meta xmlns="http://www.w3.org/1999/xhtml" http-equiv="Content-Script-Type" content="text/javascript"></meta>
+<meta xmlns="http://www.w3.org/1999/xhtml" name="toctype" itemprop="pagetype" content="ug"></meta>
+<meta xmlns="http://www.w3.org/1999/xhtml" name="infotype" itemprop="infotype" content="ex"></meta>
+
+<meta xmlns="http://www.w3.org/1999/xhtml" name="description" itemprop="description" content="You can set object-specific properties for the webcam object to use with any Webcam."></meta>
+<script xmlns="http://www.w3.org/1999/xhtml" type="text/javascript" src="../includes/product/scripts/jquery/jquery-latest.js"></script>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6.css?201709151647" rel="stylesheet" type="text/css"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_lg.css?201709151647" rel="stylesheet" media="screen and (min-width: 1200px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_md.css?201709151647" rel="stylesheet" media="screen and (min-width: 992px) and (max-width: 1199px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_sm+xs.css?201709151647" rel="stylesheet" media="screen and (max-width: 991px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_sm.css?201709151647" rel="stylesheet" media="screen and (min-width: 768px) and (max-width: 991px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_xs.css?201709151647" rel="stylesheet" media="screen and (max-width: 767px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_offcanvas.css?201709151647" rel="stylesheet" type="text/css"></link>
+
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/l10n.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/docscripts.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/f1help.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/docscripts.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/mw.imageanimation.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/jquery.highlight.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/underscore-min.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/examples.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/use_platform_screenshots.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/suggest.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/overload.js"></script>
+
+
+
+
+
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/jquery/jquery.mobile.custom.min.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/bootstrap.min.js" type="text/javascript"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/global.js"></script>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/doc_center.css" rel="stylesheet" type="text/css"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/doc_center_installed.css" rel="stylesheet" type="text/css"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/doc_center_print.css" rel="stylesheet" type="text/css" media="print"></link>
+<script xmlns="http://www.w3.org/1999/xhtml" type="text/javascript" src="../includes/shared/equationrenderer/release/MathRenderer.js"></script>
+</head>
+<body id="responsive_offcanvas">
+<div xmlns="http://www.w3.org/1999/xhtml" id="doc_header_spacer" class="header"></div>
+<div class="sticky_header_container includes_subnav">
+<div class="section_header level_3">
+<div xmlns="http://www.w3.org/1999/xhtml" class="container-fluid">
+<div class="row" id="mobile_search_row">
+<div class="col-xs-12 col-sm-6 col-sm-push-6 col-md-5 col-md-push-7" id="mobile_search">
+<div class="search_nested_content_container">
+<form id="docsearch_form" name="docsearch_form" method="get" data-release="R2017b" data-language="en" action="../../../templates/searchresults.html">
+<div class="input-group tokenized_search_field">
+<label class="sr-only">Search Help</label>
+<input type="text" class="form-control conjoined_search" autocomplete="off" name="qdoc" placeholder="Search Help" id="docsearch"></input>
+<div class="input-group-btn">
+<button type="submit" name="submitsearch" id="submitsearch" class="btn icon-search btn_search_adjacent btn_search icon_16" tabindex="-1"></button>
+</div>
+</div>
+</form>
+</div>
+<button class="btn icon-remove btn_search pull-right icon_32 visible-xs" data-toggle="collapse" href="#mobile_search" aria-expanded="false" aria-controls="mobile_search"></button></div>
+<div class="col-sm-6 col-sm-pull-6 col-md-7 col-md-pull-5" id="section_header_title">
+<div class="section_header_content">
+<div class="section_header_title">
+<h1><a href="../../../documentation-center.html">Documentation</a></h1>
+</div>
+</div>
+</div>
+<div class="visible-xs" id="search_actuator">
+<button class="btn icon-search btn_search pull-right icon_16" data-toggle="collapse" href="#mobile_search" aria-expanded="false" aria-controls="mobile_search"></button>
+</div>
+</div><!--END.CLASS row-->
+</div><!--END.CLASS container-fluid-->
+</div><!--END.CLASS section_header level_3-->
+<div xmlns="http://www.w3.org/1999/xhtml" class="horizontal_nav">
+<div class="horizontal_nav_container">
+<div class="offcanvas_actuator" data-toggle="offcanvas" data-target="#sidebar" id="nav_toggle">
+<button type="button" class="btn"><span class="sr-only">Toggle navigation</span><span class="icon-menu icon_24"></span></button>
+<span class="offcanvas_actuator_label"></span><span class="offcanvas_actuator_close"></span>
+</div>
+<div class="offcanvas_horizontal_nav">
+<div class="container-fluid">
+<div class="row">
+<div class="col-md-12 hidden-xs hidden-sm"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div><!--END.CLASS sticky_header_container-->
+<div class="row-offcanvas row-offcanvas-left">
+<div xmlns="http://www.w3.org/1999/xhtml" class="sidebar-offcanvas" id="sidebar" role="navigation">
+<nav class="offcanvas_nav" role="navigation">
+<ul class="nav_breadcrumb"><li itemscope="" itemtype="http://www.data-vocabulary.org/Breadcrumb" itemprop="breadcrumb"><a href="../../../documentation-center.html" itemprop="url"><span itemprop="title">Documentation Home</span></a></li></ul>
+<ul class="nav_disambiguation"><li class="product"><a href="../index.html">MATLAB Support Package for USB Webcams</a>
+<div class="dropdown">
+<span class="icon-arrow-down icon_16" id="dropdownMenu1" data-toggle="dropdown"></span>
+<ul class="dropdown-menu dropdown-menu-right" role="menu" aria-labelledby="dropdownMenu1">
+<li role="presentation"><a role="menuitem" tabindex="-1" href="../examples.html?s_cid=doc_flyout">Examples</a></li>
+<li role="presentation"><a role="menuitem" tabindex="-1" href="../functionlist.html?s_cid=doc_flyout">Functions</a></li>
+<li role="presentation"><a role="menuitem" tabindex="-1" href="../release-notes.html?s_cid=doc_flyout">Release Notes</a></li>
+</ul>
+</div>
+</li>
+<li itemscope="" itemtype="http://www.data-vocabulary.org/Breadcrumb" itemprop="breadcrumb"><a href="../webcam-image-acquisition.html" itemprop="url"><span itemprop="title">Webcam Image Acquisition</span></a></li></ul><ul class="nav_scrollspy nav">
+<li class="nav_scrollspy_function"><a href="#responsive_offcanvas">Set Properties for Webcam Acquisition</a></li>
+</ul>
+</nav>
+<script src="../includes/product/scripts/offcanvas.js"></script></div><!--END.CLASS sidebar-offcanvas-->
+<div class="content_container" id="content_container" itemprop="content">
+<div class="container-fluid">
+<div class="row">
+<div class="col-xs-12">
+
+<section xmlns="http://www.w3.org/1999/xhtml" id="doc_center_content" lang="en"><div id="pgtype-topic">
+<section itemprop="content"><h2 class="title r2017b" itemprop="title content" id="bt6ctrn">Set Properties for Webcam Acquisition</h2><p>Set object-specific properties for the <code class="literal">webcam</code> object
+to use with any Webcam. You can also set device-specific properties
+for a specific Webcam, if supported by your device. Use dot notation
+to set object-specific or device-specific properties.</p><div class="alert alert-info"><span class="alert_icon icon-alert-info-reverse"></span><h3>Note</h3><p>You can set device-specific properties only for Webcams connected
+to a Windows<sup>&#x00AE;</sup> system.</p></div><p><strong class="emphasis bold">Object-Specific Properties</strong></p><p>Use dot notation to set property values for the Webcam object.
+The preview window is dynamic, so if you set a property while previewing
+your image, you can see the change take effect.</p><p>Set properties after creating the Webcam object and before acquiring
+images.</p><p>To set an object-specific property, use the object name and
+property name in dot notation as the first argument, and the value
+you want to set as the second argument. Property names and values
+can be character vectors or numerics. This example sets the camera
+resolution to the value shown for the <code class="literal">webcam</code> object <code class="literal">cam</code>.</p><div class="code_responsive"><pre class="programlisting">cam.Resolution = '320x240';
+</pre></div><p>You can use these <code class="literal">webcam</code> object-specific
+properties for any Webcam.</p><div class="table-responsive"><table class="table table-condensed"><colgroup><col class="tcol1" width="32%"></col><col class="tcol2" width="68%"></col></colgroup><thead><tr><th>Object-Specific Property</th><th>Description</th></tr></thead><tbody><tr><td><code class="literal">Name</code></td><td>A read-only property that specifies the camera name. It is
+dynamically populated and uses the name that is shown in the output
+of the <code class="literal">webcamlist</code> function. For example, <code class="literal">'Logitech
+Webcam 250'</code>.</td></tr><tr><td><code class="literal">Resolution</code></td><td>Specifies the video resolution (width by height) of the incoming
+video stream of the current <code class="literal">webcam</code> object. Webcams
+typically support acquiring images at multiple resolutions, and you
+can change the resolution using this property and the object name.
+The default that is used is the default resolution of the camera.
+Use this syntax to change it:<p></p><p><code class="literal">cam.Resolution
+= '160x120';</code></p></td></tr><tr><td><code class="literal">AvailableResolutions</code></td><td>Displays the list of all available resolutions for the selected
+Webcam. Use object name:<p><code class="literal">cam.AvailableResolutions</code></p><p><code class="literal">ans
+=</code> </p><p><code class="literal"> '320x240'</code></p><p><code class="literal"> '160x120'</code></p><p><code class="literal"> '80x60'</code></p></td></tr><tr><td><code class="literal">FrameRate</code></td><td>A read-only property that displays frames per second for the acquisition. Note that some
+              cameras do not support this property, so you may not see it for your device.</td></tr></tbody></table></div><p><strong class="emphasis bold">Device-Specific Properties</strong></p><p>You can set device-specific properties for your Webcam if your
+device allows programmatic access. These properties vary depending
+on your device. See the table for a list of the possible properties
+for a UVC compatible Webcam. Your camera may not have all of these.
+You can set only the properties that your camera supports. To see
+the properties for your camera, look at the output when you create
+the <code class="literal">webcam</code> object. This example shows the available
+properties for a Logitech<sup>&#x00AE;</sup> Webcam.</p><div class="code_responsive"><pre class="programlisting">cam = webcam('Logitech')
+
+cam = 
+
+webcam with properties:
+
+                     Name: 'Logitech Webcam 250'
+               Resolution: '640x480'
+     AvailableResolutions: {1x11 cell}
+                 Exposure: -4
+                     Gain: 253
+               Saturation: 32
+             WhiteBalance: 8240
+             ExposureMode: 'auto'
+                Sharpness: 48
+               Brightness: 128
+    BacklightCompensation: 1
+                 Contrast: 32</pre></div><div class="alert alert-info"><span class="alert_icon icon-alert-info-reverse"></span><h3>Note</h3><p>You can set device-specific properties only for Webcams connected
+to a Windows system.</p></div><p>To set a device-specific property, use the object name and property
+name in dot notation as the first argument, and the value you want
+to set as the second argument. This example sets the camera brightness
+to the value shown for the <code class="literal">webcam</code> object <code class="literal">cam</code>.</p><div class="code_responsive"><pre class="programlisting">cam.Brightness = 150;
+</pre></div><p>This table lists the possible properties of UVC Webcams. Your
+specific camera may not have all of these. Your camera could also
+have mode properties, which are not listed here. See your camera documentation
+for the list of properties your device supports.</p><div class="table-responsive"><table class="table table-condensed"><colgroup><col class="tcol1" width="37%"></col><col class="tcol2" width="63%"></col></colgroup><thead><tr><th>Possible Device-Specific Properties</th><th>Description</th></tr></thead><tbody><tr><td><code class="literal">BacklightCompensation</code></td><td>Configures backlight compensation modes to adjust the camera
+to capture images dependent on environmental conditions. Values are <code class="literal">on</code> and <code class="literal">off</code>.</td></tr><tr><td><code class="literal">Brightness</code></td><td>Indicates the brightness level, which adjusts for the amount
+of lighting on the image. </td></tr><tr><td><code class="literal">Contrast</code></td><td>Indicates contrast level, which adjusts for the difference
+between brightest and dimmest areas in the image.</td></tr><tr><td><code class="literal">ColorEnable</code></td><td>Specifies the color enable setting. Values are <code class="literal">on</code> and <code class="literal">off</code>. </td></tr><tr><td><code class="literal">Gain</code></td><td>Indicates a multiplier for the RGB color values. The value <code class="literal">0</code> is
+normal. Positive values are brighter and negative values are darker.</td></tr><tr><td><code class="literal">Gamma</code></td><td>Indicates gamma measurement. </td></tr><tr><td><code class="literal">Hue</code></td><td>Indicates hue setting, which adjusts the color tint of the
+image through the red-yellow-blue spectrums. </td></tr><tr><td><code class="literal">PowerLineFrequency</code></td><td>Reduces flicker caused by the frequency of a power line. </td></tr><tr><td><code class="literal">Saturation</code></td><td>Indicates saturation level, which adjusts the amount of color
+in the image. </td></tr><tr><td><code class="literal">Sharpness</code></td><td>Indicates sharpness level, which adjusts the clarity of the
+image. </td></tr><tr><td><code class="literal">WhiteBalance</code></td><td>Indicates color temperature in degrees Kelvin. </td></tr><tr><td><code class="literal">Pan</code></td><td>Control panning, measured in degrees.</td></tr><tr><td><code class="literal">Tilt</code></td><td>Control tilting, measured in degrees.</td></tr><tr><td><code class="literal">Roll</code></td><td>Control rolling, measured in degrees.</td></tr><tr><td><code class="literal">Zoom</code></td><td>Control zooming, measured in millimeters.</td></tr><tr><td><code class="literal">Exposure</code></td><td>Specify exposure, in log base 2 seconds (1/2^n seconds).</td></tr><tr><td><code class="literal">Iris</code></td><td>Specify iris setting, in units of f-stop x 10.</td></tr><tr><td><code class="literal">Focus</code></td><td>Set focus, as the distance to the optimally focused target,
+in millimeters.</td></tr></tbody></table></div><div class="alert alert-info"><span class="alert_icon icon-alert-info-reverse"></span><h3>Note</h3><p>Webcam support is available only through the <span>MATLAB<sup>&#x00AE;</sup> Support Package for USB Webcams</span>.
+You must download and install the necessary files using MATLAB Add-Ons. For instructions, see <a href="installing-the-webcams-support-package.html" class="a">Install the Webcam Support Package</a>.</p></div></section>
+    </div></section>
+
+<div xmlns="http://www.w3.org/1999/xhtml" class="clearfix"></div>
+<div xmlns="http://www.w3.org/1999/xhtml" class="feedbackblock">Was this topic helpful?
+<input type="button" value="Yes" onClick="openFeedbackWindow('https://www.mathworks.com/programs/bounce_hub_help.html?s_cid=Help_Topic_Survey&amp;surveyParams='+document.location.href+'-YES-R2017b');"></input>
+<input type="button" value="No" onClick="openFeedbackWindow('https://www.mathworks.com/programs/bounce_hub_help.html?s_cid=Help_Topic_Survey&amp;surveyParams='+document.location.href+'-NO-R2017b');"></input>
+</div>
+<!--Last updated: Fri Sep 15 16:47:17 EDT 2017-->
+</div>
+</div>
+</div><!--close_0960-->
+</div><!--close_0970-->
+<div xmlns="http://www.w3.org/1999/xhtml" class="body_trail_container">
+<div class="container-fluid">
+<div class="row">
+<div class="col-xs-12">
+<div class="row"><div class="col-xs-12 col-sm-3"><h5><a href="../index.html?s_cid=doc_ftr">MATLAB Support Package for USB Webcams Documentation</a></h5>
+<ul class="list-unstyled hidden-xs"><li><a href="../examples.html?s_cid=doc_ftr">Examples</a></li>
+<li><a href="../functionlist.html?s_cid=doc_ftr">Functions</a></li>
+<li><a href="../release-notes.html?s_cid=doc_ftr">Release Notes</a></li>
+</ul>
+</div>
+<div class="col-xs-12 col-sm-3"><h5><a href="../../../documentation-center.html?s_cid=doc_ftr">Other Documentation</a></h5>
+<ul class="list-unstyled hidden-xs"><li><a href="../../../matlab/index.html?s_cid=doc_ftr" class="a">MATLAB</a></li><li><a href="../../../imaq/index.html?s_cid=doc_ftr" class="a">Image Acquisition Toolbox</a></li><li><a href="../../../images/index.html?s_cid=doc_ftr" class="a">Image Processing Toolbox</a></li><li><a href="../../../vision/index.html?s_cid=doc_ftr" class="a">Computer Vision System Toolbox</a></li><li><a href="../../../supportpkg/ipcamera/index.html?s_cid=doc_ftr" class="a">MATLAB Support Package for IP Cameras</a></li><li><a href="../../../documentation-center.html?s_cid=doc_ftr">Documentation Home</a></li></ul>
+</div>
+<div class="col-xs-12 col-sm-3"><h5><a href="https://www.mathworks.com/support/?s_cid=doc_ftr">Support</a></h5>
+<ul class="list-unstyled hidden-xs"><li><a href="https://www.mathworks.com/matlabcentral/answers/index?s_cid=doc_ftr">MATLAB Answers</a></li><li><a href="https://www.mathworks.com/support/install-matlab.html?s_cid=doc_ftr">Installation Help</a></li><li><a href="https://www.mathworks.com/support/bugreports/?s_cid=doc_ftr">Bug Reports</a></li><li><a href="https://www.mathworks.com/products/availability/?s_cid=doc_ftr">Product Requirements</a></li><li><a href="https://www.mathworks.com/downloads/?s_cid=doc_ftr">Software Downloads</a></li></ul>
+</div>
+</div>
+</div>
+</div>
+</div><!--END.CLASS container-fluid-->
+</div><!--END.CLASS body_trail_container-->
+<footer xmlns="http://www.w3.org/1999/xhtml" id="footer" class="bs-footer">
+<div class="container-fluid">
+<div class="footer">
+<div class="row">
+<div class="col-xs-12">
+<p class="copyright">© 1994-2017 The MathWorks, Inc.</p>
+<ul class="footernav"><li class="footernav_help"><a href="MATLAB:web(matlab.internal.licenseAgreement)">Terms of Use</a></li><li class="footernav_patents"><a href="MATLAB:web([matlabroot '/patents.txt'])">Patents</a></li><li class="footernav_trademarks"><a href="MATLAB:web([matlabroot '/trademarks.txt'])">Trademarks</a></li><li class="footernav_piracy"><a href="MATLAB:web([docroot '/acknowledgments.html'])">Acknowledgments</a></li></ul></div>
+</div>
+</div>
+</div>
+</footer>
+</div><!--close row-offcanvas-->
+</body>
+</html>

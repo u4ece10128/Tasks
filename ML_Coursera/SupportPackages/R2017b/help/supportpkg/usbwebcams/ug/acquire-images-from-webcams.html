@@ -1,0 +1,318 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" itemscope itemtype="http://www.mathworks.com/help/schema/MathWorksDocPage">
+<head>
+<meta xmlns="http://www.w3.org/1999/xhtml" charset="utf-8"></meta>
+<meta xmlns="http://www.w3.org/1999/xhtml" name="viewport" content="width=device-width, initial-scale=1.0"></meta>
+<meta xmlns="http://www.w3.org/1999/xhtml" http-equiv="X-UA-Compatible" content="IE=edge"></meta>
+<title>Acquire Images from Webcams</title>
+<link xmlns="http://www.w3.org/1999/xhtml" rel="stylesheet" href="docstyle.css" type="text/css"></link><link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/bootstrap.min.css" rel="stylesheet" type="text/css"></link>
+
+
+  <meta xmlns="http://www.w3.org/1999/xhtml" http-equiv="Content-Script-Type" content="text/javascript"></meta>
+<meta xmlns="http://www.w3.org/1999/xhtml" name="toctype" itemprop="pagetype" content="ug"></meta>
+<meta xmlns="http://www.w3.org/1999/xhtml" name="infotype" itemprop="infotype" content="ex"></meta>
+
+<meta xmlns="http://www.w3.org/1999/xhtml" name="description" itemprop="description" content="To acquire images from a Webcam, you first create a Webcam object using the webcam function."></meta>
+<script xmlns="http://www.w3.org/1999/xhtml" type="text/javascript" src="../includes/product/scripts/jquery/jquery-latest.js"></script>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6.css?201709151647" rel="stylesheet" type="text/css"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_lg.css?201709151647" rel="stylesheet" media="screen and (min-width: 1200px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_md.css?201709151647" rel="stylesheet" media="screen and (min-width: 992px) and (max-width: 1199px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_sm+xs.css?201709151647" rel="stylesheet" media="screen and (max-width: 991px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_sm.css?201709151647" rel="stylesheet" media="screen and (min-width: 768px) and (max-width: 991px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_xs.css?201709151647" rel="stylesheet" media="screen and (max-width: 767px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_offcanvas.css?201709151647" rel="stylesheet" type="text/css"></link>
+
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/l10n.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/docscripts.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/f1help.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/docscripts.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/mw.imageanimation.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/jquery.highlight.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/underscore-min.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/examples.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/use_platform_screenshots.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/suggest.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/overload.js"></script>
+
+
+
+
+
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/jquery/jquery.mobile.custom.min.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/bootstrap.min.js" type="text/javascript"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/global.js"></script>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/doc_center.css" rel="stylesheet" type="text/css"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/doc_center_installed.css" rel="stylesheet" type="text/css"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/doc_center_print.css" rel="stylesheet" type="text/css" media="print"></link>
+<script xmlns="http://www.w3.org/1999/xhtml" type="text/javascript" src="../includes/shared/equationrenderer/release/MathRenderer.js"></script>
+</head>
+<body id="responsive_offcanvas">
+<div xmlns="http://www.w3.org/1999/xhtml" id="doc_header_spacer" class="header"></div>
+<div class="sticky_header_container includes_subnav">
+<div class="section_header level_3">
+<div xmlns="http://www.w3.org/1999/xhtml" class="container-fluid">
+<div class="row" id="mobile_search_row">
+<div class="col-xs-12 col-sm-6 col-sm-push-6 col-md-5 col-md-push-7" id="mobile_search">
+<div class="search_nested_content_container">
+<form id="docsearch_form" name="docsearch_form" method="get" data-release="R2017b" data-language="en" action="../../../templates/searchresults.html">
+<div class="input-group tokenized_search_field">
+<label class="sr-only">Search Help</label>
+<input type="text" class="form-control conjoined_search" autocomplete="off" name="qdoc" placeholder="Search Help" id="docsearch"></input>
+<div class="input-group-btn">
+<button type="submit" name="submitsearch" id="submitsearch" class="btn icon-search btn_search_adjacent btn_search icon_16" tabindex="-1"></button>
+</div>
+</div>
+</form>
+</div>
+<button class="btn icon-remove btn_search pull-right icon_32 visible-xs" data-toggle="collapse" href="#mobile_search" aria-expanded="false" aria-controls="mobile_search"></button></div>
+<div class="col-sm-6 col-sm-pull-6 col-md-7 col-md-pull-5" id="section_header_title">
+<div class="section_header_content">
+<div class="section_header_title">
+<h1><a href="../../../documentation-center.html">Documentation</a></h1>
+</div>
+</div>
+</div>
+<div class="visible-xs" id="search_actuator">
+<button class="btn icon-search btn_search pull-right icon_16" data-toggle="collapse" href="#mobile_search" aria-expanded="false" aria-controls="mobile_search"></button>
+</div>
+</div><!--END.CLASS row-->
+</div><!--END.CLASS container-fluid-->
+</div><!--END.CLASS section_header level_3-->
+<div xmlns="http://www.w3.org/1999/xhtml" class="horizontal_nav">
+<div class="horizontal_nav_container">
+<div class="offcanvas_actuator" data-toggle="offcanvas" data-target="#sidebar" id="nav_toggle">
+<button type="button" class="btn"><span class="sr-only">Toggle navigation</span><span class="icon-menu icon_24"></span></button>
+<span class="offcanvas_actuator_label"></span><span class="offcanvas_actuator_close"></span>
+</div>
+<div class="offcanvas_horizontal_nav">
+<div class="container-fluid">
+<div class="row">
+<div class="col-md-12 hidden-xs hidden-sm"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div><!--END.CLASS sticky_header_container-->
+<div class="row-offcanvas row-offcanvas-left">
+<div xmlns="http://www.w3.org/1999/xhtml" class="sidebar-offcanvas" id="sidebar" role="navigation">
+<nav class="offcanvas_nav" role="navigation">
+<ul class="nav_breadcrumb"><li itemscope="" itemtype="http://www.data-vocabulary.org/Breadcrumb" itemprop="breadcrumb"><a href="../../../documentation-center.html" itemprop="url"><span itemprop="title">Documentation Home</span></a></li></ul>
+<ul class="nav_disambiguation"><li class="product"><a href="../index.html">MATLAB Support Package for USB Webcams</a>
+<div class="dropdown">
+<span class="icon-arrow-down icon_16" id="dropdownMenu1" data-toggle="dropdown"></span>
+<ul class="dropdown-menu dropdown-menu-right" role="menu" aria-labelledby="dropdownMenu1">
+<li role="presentation"><a role="menuitem" tabindex="-1" href="../examples.html?s_cid=doc_flyout">Examples</a></li>
+<li role="presentation"><a role="menuitem" tabindex="-1" href="../functionlist.html?s_cid=doc_flyout">Functions</a></li>
+<li role="presentation"><a role="menuitem" tabindex="-1" href="../release-notes.html?s_cid=doc_flyout">Release Notes</a></li>
+</ul>
+</div>
+</li>
+<li itemscope="" itemtype="http://www.data-vocabulary.org/Breadcrumb" itemprop="breadcrumb"><a href="../webcam-image-acquisition.html" itemprop="url"><span itemprop="title">Webcam Image Acquisition</span></a></li></ul><ul class="nav_scrollspy nav">
+<li class="nav_scrollspy_function"><a href="#responsive_offcanvas">Acquire Images from Webcams</a></li>
+<li class="nav_scrollspy_title" id="SSPY810-section">On this page</li>
+<!--ADD_REFENTRY_TITLE_HERE--><li><a href="#bt6eea0" class="intrnllnk">Create a Webcam Object</a></li><li><a href="#bt6eebl" class="intrnllnk">Acquire Webcam Images</a></li></ul>
+</nav>
+<script src="../includes/product/scripts/offcanvas.js"></script></div><!--END.CLASS sidebar-offcanvas-->
+<div class="content_container" id="content_container" itemprop="content">
+<div class="container-fluid">
+<div class="row">
+<div class="col-xs-12">
+
+<section xmlns="http://www.w3.org/1999/xhtml" id="doc_center_content" lang="en"><div id="pgtype-topic">
+<section itemprop="content"><h2 class="title r2017b" itemprop="title content" id="bt6ctqd">Acquire Images from Webcams</h2><ul><li><p><a class="intrnllnk" href="#bt6eea0">Create a Webcam Object</a></p></li><li><p><a class="intrnllnk" href="#bt6eebl">Acquire Webcam Images</a></p></li></ul><section itemprop="content"><h3 class="title" id="bt6eea0">Create a Webcam Object</h3><p>To acquire images from a Webcam, you first create a Webcam object.
+Use the <a href="webcam.html"><code class="function">webcam</code></a> function
+to create a Webcam object. You can use it in one of three ways:</p><table border="0" summary="Simple list" class="simplelist"><tr><td><span class="member">Connect to the first or only camera, by using no input arguments</span></td></tr><tr><td><span class="member">Specify a camera by name, by using the Webcam name (as a character
+vector) as an input argument</span></td></tr><tr><td><span class="member">Specify a camera by the list order, by using an index number
+as the input argument</span></td></tr></table><div class="alert alert-info"><span class="alert_icon icon-alert-info-reverse"></span><h3>Note</h3><p>Webcam support is available only through the <span>MATLAB<sup>&#x00AE;</sup> Support Package for USB Webcams</span>.
+You must download and install the necessary files using MATLAB Add-Ons. For instructions, see <a href="installing-the-webcams-support-package.html" class="a">Install the Webcam Support Package</a>.</p></div><p>Find the name of your camera by using the <a href="webcamlist.html"><code class="function">webcamlist</code></a> function. Run <code class="literal">webcamlist</code> first
+to make sure that MATLAB can discover your camera(s). In this
+example, it discovers the built-in Webcam in the Dell<sup>&#x00AE;</sup> computer,
+and a connected Logitech<sup>&#x00AE;</sup> Webcam.</p><div class="code_responsive"><pre class="programlisting">webcamlist
+
+ans = 
+
+		 'Logitech Webcam 250'
+		 'Dell Camera C250' </pre></div><p><strong class="emphasis bold">No Input Argument</strong></p><p>If you use the <code class="literal">webcam</code> function with no input
+argument, it creates the object and connects to the first camera returned
+by <code class="literal">webcamlist</code>. In this case, it uses the Logitech camera,
+since that appears in the list first.</p><div class="code_responsive"><pre class="programlisting">% Use cam as the name of the object.
+
+cam = webcam
+
+cam = 
+
+webcam with properties:
+
+                     Name: 'Logitech Webcam 250'
+               Resolution: '640x480'
+     AvailableResolutions: {1x11 cell}
+                 Exposure: -4
+                     Gain: 253
+               Saturation: 32
+             WhiteBalance: 8240
+             ExposureMode: 'auto'
+                Sharpness: 48
+               Brightness: 128
+    BacklightCompensation: 1
+                 Contrast: 32</pre></div><p>When you create the <code class="literal">webcam</code> object, it connects
+to the camera, establishes exclusive access, and starts streaming
+data. You can then preview the data and acquire images using the <code class="literal">snapshot</code> function,
+as described in the next section, Acquiring Webcam Images.</p><p><strong class="emphasis bold">Index as Input Argument</strong></p><p>If you use the <code class="literal">webcam</code> function with an index
+as the input argument, it creates the object corresponding to that
+index and connects to that camera. If you only have one camera, you
+do not need to use the index. You can use the <code class="literal">webcam</code> function
+with no input argument and it creates the object with the single camera
+that is connected. The index is useful when you have multiple cameras.</p><p>The index corresponds to the order of cameras in the cell array
+returned by <code class="literal">webcamlist</code> when you have multiple cameras
+connected. In this example, device <code class="literal">1</code> is the Logitech camera
+and device <code class="literal">2</code> is the built-in Dell Webcam.</p><div class="code_responsive"><pre class="programlisting">webcamlist
+
+ans = 
+
+		 'Logitech Webcam 250'
+		 'Dell Camera C250' </pre></div><div class="code_responsive"><pre class="programlisting">% Use cam as the name of the object. Use 2 to connect to the Dell camera.
+
+cam = webcam(2)
+
+cam = 
+
+webcam with properties:
+
+                Name: 'Dell Camera C250'
+          Resolution: '320x240'
+AvailableResolutions: ('320x240' '160x120' '80x60')
+          Brightness: 128
+            Contrast: 32
+                Gain: 0</pre></div><p><strong class="emphasis bold">Camera Name as Input Argument</strong></p><p>If you use the <code class="literal">webcam</code> function with the name
+of the camera (as a character vector) as the input argument, it creates
+the object and connects to the camera with that name. Use the exact
+name that is displayed by the <code class="literal">webcamlist</code> function,
+such as <code class="literal">'Logitech Webcam 250'</code>, or use a shortened
+version of the name, such as the camera brand. In this case, you can
+simply use <code class="literal">'Logitech'</code> to connect to the Logitech Webcam.</p><div class="code_responsive"><pre class="programlisting">% Use cam as the name of the object. Use 'Logitech' to connect to the Logitech camera.
+</pre></div><div class="code_responsive"><pre class="programlisting">cam = webcam('Logitech')
+
+cam = 
+
+webcam with properties:
+
+                     Name: 'Logitech Webcam 250'
+               Resolution: '640x480'
+     AvailableResolutions: {1x11 cell}
+                 Exposure: -4
+                     Gain: 253
+               Saturation: 32
+             WhiteBalance: 8240
+             ExposureMode: 'auto'
+                Sharpness: 48
+               Brightness: 128
+    BacklightCompensation: 1
+                 Contrast: 32</pre></div><p>When you create the <code class="literal">webcam</code> object, it connects
+to the camera, establishes exclusive access, and starts streaming
+data. You can then preview the data and acquire images using the <code class="literal">snapshot</code> function,
+as described in the next section, Acquiring Webcam Images.</p></section><section itemprop="content"><h3 class="title" id="bt6eebl">Acquire Webcam Images</h3><p>This example describes the typical workflow for acquiring images
+from Webcams and bringing them into MATLAB.</p><div class="orderedlist"><ol style="list-style: decimal;"><li><p>Find the cameras that are connected to your system
+and make sure MATLAB can detect them.</p><div class="code_responsive"><pre class="programlisting">webcamlist
+
+ans = 
+
+		 'Logitech Webcam 250'
+		 'Dell Camera C250' </pre></div><p>The output is a list of any Webcams that are connected to your
+system. In this example, it discovers a built-in Webcam in the Dell computer,
+and a connected Logitech Webcam.</p></li><li><p>Create a <code class="literal">webcam</code> object called <code class="literal">cam</code>,
+using the Logitech camera.</p><div class="code_responsive"><pre class="programlisting">cam = webcam('Logitech')
+
+cam = 
+
+webcam with properties:
+
+                     Name: 'Logitech Webcam 250'
+               Resolution: '640x480'
+     AvailableResolutions: {1x11 cell}
+                 Exposure: -4
+                     Gain: 253
+               Saturation: 32
+             WhiteBalance: 8240
+             ExposureMode: 'auto'
+                Sharpness: 48
+               Brightness: 128
+    BacklightCompensation: 1
+                 Contrast: 32</pre></div></li><li><p>Preview the image. The size of the preview image is
+determined by the value of the <code class="literal">resolution</code> property.
+The preview window shows a live RGB image from the Webcam. The preview
+window also displays the camera name, resolution, frame rate, and
+the timestamp in seconds. Timestamp is the elapsed time since the
+object was created. To preview your image, call the <code class="literal">preview</code> function
+on the object name, which is <code class="literal">cam</code> in this example.</p><div class="code_responsive"><pre class="programlisting">preview(cam)
+</pre></div><div class="informalfigure"><div id="d118e468" class="mediaobject"><p class="listimage"><img src="webcampreviewv2.gif" alt="" height="533" width="655"></img></p></div></div><p>The preview updates dynamically, so if you change a property
+while previewing, the image changes to reflect the property change.</p></li><li><p>Set any properties that you need to change. For example,
+you might want to change the resolution.</p><p>First you can see the resolutions your camera supports using
+the <code class="literal">AvailableResolutions</code> property.</p><div class="code_responsive"><pre class="programlisting">cam.AvailableResolutions
+
+ans = 
+
+   Columns 1 through 6
+
+      '640x480'  '160x90'  '160x100'  '160x120'  '176x144' '320x180'
+
+   Columns 7 through 11
+
+      '320x200'  '320x240'  '352x288'  '640x360'  '640x400'</pre></div><p>Change the resolution.</p><div class="code_responsive"><pre class="programlisting">cam.Resolution = '320x240';
+</pre></div><p>For information on which properties you can set for Webcams
+and how to set them, see <a href="set-properties-for-webcam-acquisition.html" class="a">Set Properties for Webcam Acquisition</a>.</p></li><li><p>Close the preview at any time using the <code class="literal">closePreview</code> function.</p><div class="code_responsive"><pre class="programlisting">closePreview(cam)
+</pre></div><p>If you do not explicitly close the preview, it closes when you
+clear the <code class="literal">webcam</code> object.</p></li><li><p>Acquire a single image from the camera using the <code class="literal">snapshot</code> function
+and assign it to the variable <code class="literal">img</code>.</p><div class="code_responsive"><pre class="programlisting">img = snapshot(cam);
+</pre></div></li><li><p>Display the acquired image.</p><div class="code_responsive"><pre class="programlisting">imshow(img)</pre></div><p>The <code class="literal">imshow</code> function is part of the Image Processing
+            Toolbox&#x2122;.
+If you do not have that product, you can use the <code class="literal">image</code> function
+that is part of MATLAB.</p><div class="code_responsive"><pre class="programlisting">image(img)</pre></div></li><li><p>Clean up by clearing the object.</p><div class="code_responsive"><pre class="programlisting">clear('cam');</pre></div></li></ol></div><p>For an example showing how to acquire images in a loop, see <a href="acquire-webcam-images-in-a-loop.html" class="a">Acquire Webcam Images in a Loop</a>. For a list of the functions you can use with
+the Webcam support, see <a href="supported-functions-for-webcam.html" class="a">Supported Functions for Webcam</a>.</p></section></section>
+    </div></section>
+
+<div xmlns="http://www.w3.org/1999/xhtml" class="clearfix"></div>
+<div xmlns="http://www.w3.org/1999/xhtml" class="feedbackblock">Was this topic helpful?
+<input type="button" value="Yes" onClick="openFeedbackWindow('https://www.mathworks.com/programs/bounce_hub_help.html?s_cid=Help_Topic_Survey&amp;surveyParams='+document.location.href+'-YES-R2017b');"></input>
+<input type="button" value="No" onClick="openFeedbackWindow('https://www.mathworks.com/programs/bounce_hub_help.html?s_cid=Help_Topic_Survey&amp;surveyParams='+document.location.href+'-NO-R2017b');"></input>
+</div>
+<!--Last updated: Fri Sep 15 16:47:17 EDT 2017-->
+</div>
+</div>
+</div><!--close_0960-->
+</div><!--close_0970-->
+<div xmlns="http://www.w3.org/1999/xhtml" class="body_trail_container">
+<div class="container-fluid">
+<div class="row">
+<div class="col-xs-12">
+<div class="row"><div class="col-xs-12 col-sm-3"><h5><a href="../index.html?s_cid=doc_ftr">MATLAB Support Package for USB Webcams Documentation</a></h5>
+<ul class="list-unstyled hidden-xs"><li><a href="../examples.html?s_cid=doc_ftr">Examples</a></li>
+<li><a href="../functionlist.html?s_cid=doc_ftr">Functions</a></li>
+<li><a href="../release-notes.html?s_cid=doc_ftr">Release Notes</a></li>
+</ul>
+</div>
+<div class="col-xs-12 col-sm-3"><h5><a href="../../../documentation-center.html?s_cid=doc_ftr">Other Documentation</a></h5>
+<ul class="list-unstyled hidden-xs"><li><a href="../../../matlab/index.html?s_cid=doc_ftr" class="a">MATLAB</a></li><li><a href="../../../imaq/index.html?s_cid=doc_ftr" class="a">Image Acquisition Toolbox</a></li><li><a href="../../../images/index.html?s_cid=doc_ftr" class="a">Image Processing Toolbox</a></li><li><a href="../../../vision/index.html?s_cid=doc_ftr" class="a">Computer Vision System Toolbox</a></li><li><a href="../../../supportpkg/ipcamera/index.html?s_cid=doc_ftr" class="a">MATLAB Support Package for IP Cameras</a></li><li><a href="../../../documentation-center.html?s_cid=doc_ftr">Documentation Home</a></li></ul>
+</div>
+<div class="col-xs-12 col-sm-3"><h5><a href="https://www.mathworks.com/support/?s_cid=doc_ftr">Support</a></h5>
+<ul class="list-unstyled hidden-xs"><li><a href="https://www.mathworks.com/matlabcentral/answers/index?s_cid=doc_ftr">MATLAB Answers</a></li><li><a href="https://www.mathworks.com/support/install-matlab.html?s_cid=doc_ftr">Installation Help</a></li><li><a href="https://www.mathworks.com/support/bugreports/?s_cid=doc_ftr">Bug Reports</a></li><li><a href="https://www.mathworks.com/products/availability/?s_cid=doc_ftr">Product Requirements</a></li><li><a href="https://www.mathworks.com/downloads/?s_cid=doc_ftr">Software Downloads</a></li></ul>
+</div>
+</div>
+</div>
+</div>
+</div><!--END.CLASS container-fluid-->
+</div><!--END.CLASS body_trail_container-->
+<footer xmlns="http://www.w3.org/1999/xhtml" id="footer" class="bs-footer">
+<div class="container-fluid">
+<div class="footer">
+<div class="row">
+<div class="col-xs-12">
+<p class="copyright">© 1994-2017 The MathWorks, Inc.</p>
+<ul class="footernav"><li class="footernav_help"><a href="MATLAB:web(matlab.internal.licenseAgreement)">Terms of Use</a></li><li class="footernav_patents"><a href="MATLAB:web([matlabroot '/patents.txt'])">Patents</a></li><li class="footernav_trademarks"><a href="MATLAB:web([matlabroot '/trademarks.txt'])">Trademarks</a></li><li class="footernav_piracy"><a href="MATLAB:web([docroot '/acknowledgments.html'])">Acknowledgments</a></li></ul></div>
+</div>
+</div>
+</div>
+</footer>
+</div><!--close row-offcanvas-->
+</body>
+</html>

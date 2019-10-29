@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<productAdditionalComps>
+  <dependsOn>
+    <component>
+      <name>hardwaresupportpkgs/matlab/webcam_maci64</name>
+      <instrset>0</instrset>
+      <locale />
+      <platformList>
+        <platform>maci64</platform>
+      </platformList>
+      <version>1505503139</version>
+    </component>
+    <component>
+      <name>hardwaresupportpkgs/usbwebcams_fe_maci64</name>
+      <instrset>0</instrset>
+      <locale />
+      <platformList>
+        <platform>maci64</platform>
+      </platformList>
+      <version>1505503163</version>
+    </component>
+  </dependsOn>
+  <isControllingProduct>false</isControllingProduct>
+  <licenseAgreementType>ASLA</licenseAgreementType>
+  <platform>maci64</platform>
+  <productBaseCode>USBWEBCAM</productBaseCode>
+  <productName>MATLAB Support Package for USB Webcams</productName>
+  <productNumber>2055</productNumber>
+  <productVersion>17.2.0</productVersion>
+  <releaseDescription>R2017b</releaseDescription>
+  <releaseFamily>R2017b</releaseFamily>
+</productAdditionalComps>
+

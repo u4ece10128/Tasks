@@ -1,0 +1,211 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" itemscope itemtype="http://www.mathworks.com/help/schema/MathWorksDocPage">
+<head>
+<meta xmlns="http://www.w3.org/1999/xhtml" charset="utf-8"></meta>
+<meta xmlns="http://www.w3.org/1999/xhtml" name="viewport" content="width=device-width, initial-scale=1.0"></meta>
+<meta xmlns="http://www.w3.org/1999/xhtml" http-equiv="X-UA-Compatible" content="IE=edge"></meta>
+<title>closePreview</title>
+<link xmlns="http://www.w3.org/1999/xhtml" rel="stylesheet" href="docstyle.css" type="text/css"></link>
+<meta xmlns="http://www.w3.org/1999/xhtml" name="chunktype" content="refpage"></meta><meta xmlns="http://www.w3.org/1999/xhtml" name="refentity" itemprop="refentity" content="function:closePreview"></meta><link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/bootstrap.min.css" rel="stylesheet" type="text/css"></link>
+
+
+  <meta xmlns="http://www.w3.org/1999/xhtml" http-equiv="Content-Script-Type" content="text/javascript"></meta>
+<meta xmlns="http://www.w3.org/1999/xhtml" name="toctype" itemprop="pagetype" content="fcn"></meta>
+<meta xmlns="http://www.w3.org/1999/xhtml" name="infotype" itemprop="infotype" content="ref/function"></meta>
+
+<meta xmlns="http://www.w3.org/1999/xhtml" name="description" itemprop="description" content="This MATLAB function closes the Webcam preview window for the webcam object cam."></meta>
+<script xmlns="http://www.w3.org/1999/xhtml" type="text/javascript" src="../includes/product/scripts/jquery/jquery-latest.js"></script>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6.css?201709151647" rel="stylesheet" type="text/css"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_lg.css?201709151647" rel="stylesheet" media="screen and (min-width: 1200px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_md.css?201709151647" rel="stylesheet" media="screen and (min-width: 992px) and (max-width: 1199px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_sm+xs.css?201709151647" rel="stylesheet" media="screen and (max-width: 991px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_sm.css?201709151647" rel="stylesheet" media="screen and (min-width: 768px) and (max-width: 991px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_xs.css?201709151647" rel="stylesheet" media="screen and (max-width: 767px)"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/site6_offcanvas.css?201709151647" rel="stylesheet" type="text/css"></link>
+
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/l10n.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/docscripts.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/f1help.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/docscripts.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/mw.imageanimation.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/jquery.highlight.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/underscore-min.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/examples.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/use_platform_screenshots.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/suggest.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/shared/scripts/overload.js"></script>
+
+
+
+
+
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/jquery/jquery.mobile.custom.min.js"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/bootstrap.min.js" type="text/javascript"></script>
+<script xmlns="http://www.w3.org/1999/xhtml" src="../includes/product/scripts/global.js"></script>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/doc_center.css" rel="stylesheet" type="text/css"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/doc_center_installed.css" rel="stylesheet" type="text/css"></link>
+<link xmlns="http://www.w3.org/1999/xhtml" href="../includes/product/css/doc_center_print.css" rel="stylesheet" type="text/css" media="print"></link>
+<script xmlns="http://www.w3.org/1999/xhtml" type="text/javascript" src="../includes/shared/equationrenderer/release/MathRenderer.js"></script>
+</head>
+<body id="responsive_offcanvas">
+<div xmlns="http://www.w3.org/1999/xhtml" id="doc_header_spacer" class="header"></div>
+<div class="sticky_header_container includes_subnav">
+<div class="section_header level_3">
+<div xmlns="http://www.w3.org/1999/xhtml" class="container-fluid">
+<div class="row" id="mobile_search_row">
+<div class="col-xs-12 col-sm-6 col-sm-push-6 col-md-5 col-md-push-7" id="mobile_search">
+<div class="search_nested_content_container">
+<form id="docsearch_form" name="docsearch_form" method="get" data-release="R2017b" data-language="en" action="../../../templates/searchresults.html">
+<div class="input-group tokenized_search_field">
+<label class="sr-only">Search Help</label>
+<input type="text" class="form-control conjoined_search" autocomplete="off" name="qdoc" placeholder="Search Help" id="docsearch"></input>
+<div class="input-group-btn">
+<button type="submit" name="submitsearch" id="submitsearch" class="btn icon-search btn_search_adjacent btn_search icon_16" tabindex="-1"></button>
+</div>
+</div>
+</form>
+</div>
+<button class="btn icon-remove btn_search pull-right icon_32 visible-xs" data-toggle="collapse" href="#mobile_search" aria-expanded="false" aria-controls="mobile_search"></button></div>
+<div class="col-sm-6 col-sm-pull-6 col-md-7 col-md-pull-5" id="section_header_title">
+<div class="section_header_content">
+<div class="section_header_title">
+<h1><a href="../../../documentation-center.html">Documentation</a></h1>
+</div>
+</div>
+</div>
+<div class="visible-xs" id="search_actuator">
+<button class="btn icon-search btn_search pull-right icon_16" data-toggle="collapse" href="#mobile_search" aria-expanded="false" aria-controls="mobile_search"></button>
+</div>
+</div><!--END.CLASS row-->
+</div><!--END.CLASS container-fluid-->
+</div><!--END.CLASS section_header level_3-->
+<div xmlns="http://www.w3.org/1999/xhtml" class="horizontal_nav">
+<div class="horizontal_nav_container">
+<div class="offcanvas_actuator" data-toggle="offcanvas" data-target="#sidebar" id="nav_toggle">
+<button type="button" class="btn"><span class="sr-only">Toggle navigation</span><span class="icon-menu icon_24"></span></button>
+<span class="offcanvas_actuator_label"></span><span class="offcanvas_actuator_close"></span>
+</div>
+<div class="offcanvas_horizontal_nav">
+<div class="container-fluid">
+<div class="row">
+<div class="col-md-12 hidden-xs hidden-sm"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div><!--END.CLASS sticky_header_container-->
+<div class="row-offcanvas row-offcanvas-left">
+<div xmlns="http://www.w3.org/1999/xhtml" class="sidebar-offcanvas" id="sidebar" role="navigation">
+<nav class="offcanvas_nav" role="navigation">
+<ul class="nav_breadcrumb"><li itemscope="" itemtype="http://www.data-vocabulary.org/Breadcrumb" itemprop="breadcrumb"><a href="../../../documentation-center.html" itemprop="url"><span itemprop="title">Documentation Home</span></a></li></ul>
+<ul class="nav_disambiguation"><li class="product"><a href="../index.html">MATLAB Support Package for USB Webcams</a>
+<div class="dropdown">
+<span class="icon-arrow-down icon_16" id="dropdownMenu1" data-toggle="dropdown"></span>
+<ul class="dropdown-menu dropdown-menu-right" role="menu" aria-labelledby="dropdownMenu1">
+<li role="presentation"><a role="menuitem" tabindex="-1" href="../examples.html?s_cid=doc_flyout">Examples</a></li>
+<li role="presentation"><a role="menuitem" tabindex="-1" href="../functionlist.html?s_cid=doc_flyout">Functions</a></li>
+<li role="presentation"><a role="menuitem" tabindex="-1" href="../release-notes.html?s_cid=doc_flyout">Release Notes</a></li>
+</ul>
+</div>
+</li>
+<li itemscope="" itemtype="http://www.data-vocabulary.org/Breadcrumb" itemprop="breadcrumb"><a href="../webcam-image-acquisition.html" itemprop="url"><span itemprop="title">Webcam Image Acquisition</span></a></li></ul><ul class="nav_disambiguation"><li><a href="../index.html">MATLAB Support Package for USB Webcams</a>
+</li>
+<li><a href="../functionlist.html" itemprop="url">Functions</a></li>
+</ul><ul class="nav_scrollspy nav">
+<li class="nav_scrollspy_function"><a href="#responsive_offcanvas"><span class="refname">closePreview</span></a></li>
+<li class="nav_scrollspy_title" id="SSPY810-refentry">On this page</li>
+<!--ADD_REFENTRY_TITLE_HERE--><li><a href="#d118e1086" class="intrnllnk">Syntax</a></li><li><a href="#description" class="intrnllnk">Description</a></li><li><a href="#buerj2g-3" class="intrnllnk">Examples</a><ul class="nav"><li><a href="#buerj2g-4" class="intrnllnk">Close Webcam Preview</a></li></ul></li><li><a href="#buerj2g-1_seealso">See Also</a></li></ul>
+</nav>
+<script src="../includes/product/scripts/offcanvas.js"></script></div><!--END.CLASS sidebar-offcanvas-->
+<div class="content_container" id="content_container" itemprop="content">
+<div class="container-fluid">
+<div class="row">
+<div class="col-xs-12">
+
+<section xmlns="http://www.w3.org/1999/xhtml" id="doc_center_content" lang="en"><div id="pgtype-ref-function"><div class="function_ref"><span id="buerj2g-1" class="anchor_target"></span><h1 class="r2017b" itemprop="title"><span class="refname">closePreview</span></h1><div class="doc_topic_desc"><div class="purpose_container"><p itemprop="purpose">Close Webcam preview window</p><div class="switch"><a href="javascript:void(0);" id="expandAllPage" data-allexpanded="true1">collapse all in page</a></div></div></div>
+<div class="ref_sect"><h2 id="d118e1086">Syntax</h2><div class="syntax_signature"><div class="syntax_signature_module"><div class="code_responsive"><code class="synopsis">closePreview(cam)</code></div></div></div></div><div class="clear"></div><span id="buerj2g-2" class="anchor_target"></span><h2 id="description">Description</h2><div class="descriptions"><div class="description_module"><div class="description_element"><p class="syntax_example"><a href="closepreview.html#buerj2g-4" class="intrnllnk">example</a></p><div class="code_responsive"><p><span itemprop="syntax"><code class="synopsis">closePreview(cam)</code></span> closes the Webcam preview
+window for the <code class="literal">webcam</code> object <code class="literal">cam</code>.
+You can close the preview at any time using the <code class="literal">closePreview</code> function.
+If you do not explicitly close the preview, it closes when you clear
+the <code class="literal">webcam</code> object.</p></div></div></div></div><div class="clear"></div><div class="examples"><h2 id="buerj2g-3">Examples</h2><div class="expandableContent" id="expandableExamples"><p class="switch"><a href="javascript:void(0);" class="expandAllLink" data-allexpanded="true3">collapse all</a></p><div class="panel-group" role="tablist" aria-multiselectable="true" id="expand_panel_heading_buerj2g-4"><div class="panel panel-default "><div role="tab" data-toggle="collapse" id="expand_panel_heading_buerj2g-4" data-target="#expand_panel_body_buerj2g-4" aria-controls="expand_panel_body_buerj2g-4" class="panel-heading add_cursor_pointer" aria-expanded="true"><h3 class="panel-title" id="buerj2g-4">Close Webcam Preview<br/> </h3><span class="icon-arrow-open-down icon_24"></span><span class="icon-arrow-open-right icon_24"></span></div><div role="tabpanel" id="expand_panel_body_buerj2g-4" aria-labelledby="expand_panel_heading_buerj2g-4" class="panel-collapse collapse in"><div class="panel-body">
+<p class="shortdesc">You can open or close the Webcam preview window
+any time after creating the <code class="literal">webcam</code> object.</p>
+<div class="procedure"><p>Find the name of your camera using the <code class="literal">webcamlist</code> function
+to ensure that MATLAB<sup>&#x00AE;</sup> is discovering your camera(s).</p><div class="code_responsive"><div class="programlisting"><div class="codeinput"><pre>webcamlist</pre></div></div></div><div class="code_responsive"><div class="programlisting"><div class="codeoutput"><pre>ans = 
+
+		 'Logitech Webcam 250'
+		 'Dell Camera C250'</pre></div></div></div><p>Use the <code class="literal">webcam</code> function with the name
+of the camera as the input argument to create the object and connect
+it to the camera with that name. You can use the exact name from the
+output of <code class="literal">webcamlist</code>, which is <code class="literal">'Logitech
+Webcam 250'</code> in this example. Or you can also use a shortened
+version of the name, for example, the brand of the camera, which in
+this case is <code class="literal">'Logitech'</code>. Use <code class="literal">cam</code> as
+the name of the object.</p><div class="code_responsive"><div class="programlisting"><div class="codeinput"><pre>cam = webcam(<span style="color:#A020F0">'Logitech'</span>)</pre></div></div></div><div class="code_responsive"><div class="programlisting"><div class="codeoutput"><pre>cam = 
+
+webcam with properties:
+
+                     Name: 'Logitech Webcam 250'
+               Resolution: '640x480'
+     AvailableResolutions: {1x11 cell}
+                 Exposure: -4
+                     Gain: 253
+               Saturation: 32
+             WhiteBalance: 8240
+             ExposureMode: 'auto'
+                Sharpness: 48
+               Brightness: 128
+    BacklightCompensation: 1
+                 Contrast: 32</pre></div></div></div><p>It creates the object and connects it to the Logitech<sup>&#x00AE;</sup> Webcam.</p><p>Preview the image from the Webcam.</p><div class="code_responsive"><div class="programlisting"><div class="codeinput"><pre>preview(cam)</pre></div></div></div><p>The preview window opens and displays live video stream from
+your camera. The preview dynamically updates, so if you change a property
+while previewing, the image changes to reflect the property change.</p><p>Close the preview.</p><div class="code_responsive"><div class="programlisting"><div class="codeinput"><pre>closePreview(cam)</pre></div></div></div><p>The preview window closes.</p><p>After you preview the image, the next steps are optionally changing
+any properties you need to set, and then acquiring images using the <code class="literal">snapshot</code> function.
+For more information on these steps, see the topics listed below.</p></div></div></div></div></div></div></div><div class="ref_sect"><h2 id="buerj2g-1_seealso">See Also</h2><div class="examples_container"><h3 class="remove_border">Topics</h3><div itemprop="content"><ul class="list-unstyled"><li><a href="connect-to-webcams.html" class="a">Connect to Webcams</a></li><li><a href="acquire-images-from-webcams.html" class="a">Acquire Images from Webcams</a></li><li><a href="acquire-webcam-images-in-a-loop.html" class="a">Acquire Webcam Images in a Loop</a></li><li><a href="set-properties-for-webcam-acquisition.html" class="a">Set Properties for Webcam Acquisition</a></li><li><a href="supported-functions-for-webcam.html" class="a">Supported Functions for Webcam</a></li></ul></div></div></div><div class="release_introduced"><h4>Introduced in R2014a</h4></div>
+    </div></div></section>
+
+<div xmlns="http://www.w3.org/1999/xhtml" class="clearfix"></div>
+<div xmlns="http://www.w3.org/1999/xhtml" class="feedbackblock">Was this topic helpful?
+<input type="button" value="Yes" onClick="openFeedbackWindow('https://www.mathworks.com/programs/bounce_hub_help.html?s_cid=Help_Topic_Survey&amp;surveyParams='+document.location.href+'-YES-R2017b');"></input>
+<input type="button" value="No" onClick="openFeedbackWindow('https://www.mathworks.com/programs/bounce_hub_help.html?s_cid=Help_Topic_Survey&amp;surveyParams='+document.location.href+'-NO-R2017b');"></input>
+</div>
+<!--Last updated: Fri Sep 15 16:47:17 EDT 2017-->
+</div>
+</div>
+</div><!--close_0960-->
+</div><!--close_0970-->
+<div xmlns="http://www.w3.org/1999/xhtml" class="body_trail_container">
+<div class="container-fluid">
+<div class="row">
+<div class="col-xs-12">
+<div class="row"><div class="col-xs-12 col-sm-3"><h5><a href="../index.html?s_cid=doc_ftr">MATLAB Support Package for USB Webcams Documentation</a></h5>
+<ul class="list-unstyled hidden-xs"><li><a href="../examples.html?s_cid=doc_ftr">Examples</a></li>
+<li><a href="../functionlist.html?s_cid=doc_ftr">Functions</a></li>
+<li><a href="../release-notes.html?s_cid=doc_ftr">Release Notes</a></li>
+</ul>
+</div>
+<div class="col-xs-12 col-sm-3"><h5><a href="../../../documentation-center.html?s_cid=doc_ftr">Other Documentation</a></h5>
+<ul class="list-unstyled hidden-xs"><li><a href="../../../matlab/index.html?s_cid=doc_ftr" class="a">MATLAB</a></li><li><a href="../../../imaq/index.html?s_cid=doc_ftr" class="a">Image Acquisition Toolbox</a></li><li><a href="../../../images/index.html?s_cid=doc_ftr" class="a">Image Processing Toolbox</a></li><li><a href="../../../vision/index.html?s_cid=doc_ftr" class="a">Computer Vision System Toolbox</a></li><li><a href="../../../supportpkg/ipcamera/index.html?s_cid=doc_ftr" class="a">MATLAB Support Package for IP Cameras</a></li><li><a href="../../../documentation-center.html?s_cid=doc_ftr">Documentation Home</a></li></ul>
+</div>
+<div class="col-xs-12 col-sm-3"><h5><a href="https://www.mathworks.com/support/?s_cid=doc_ftr">Support</a></h5>
+<ul class="list-unstyled hidden-xs"><li><a href="https://www.mathworks.com/matlabcentral/answers/index?s_cid=doc_ftr">MATLAB Answers</a></li><li><a href="https://www.mathworks.com/support/install-matlab.html?s_cid=doc_ftr">Installation Help</a></li><li><a href="https://www.mathworks.com/support/bugreports/?s_cid=doc_ftr">Bug Reports</a></li><li><a href="https://www.mathworks.com/products/availability/?s_cid=doc_ftr">Product Requirements</a></li><li><a href="https://www.mathworks.com/downloads/?s_cid=doc_ftr">Software Downloads</a></li></ul>
+</div>
+</div>
+</div>
+</div>
+</div><!--END.CLASS container-fluid-->
+</div><!--END.CLASS body_trail_container-->
+<footer xmlns="http://www.w3.org/1999/xhtml" id="footer" class="bs-footer">
+<div class="container-fluid">
+<div class="footer">
+<div class="row">
+<div class="col-xs-12">
+<p class="copyright">© 1994-2017 The MathWorks, Inc.</p>
+<ul class="footernav"><li class="footernav_help"><a href="MATLAB:web(matlab.internal.licenseAgreement)">Terms of Use</a></li><li class="footernav_patents"><a href="MATLAB:web([matlabroot '/patents.txt'])">Patents</a></li><li class="footernav_trademarks"><a href="MATLAB:web([matlabroot '/trademarks.txt'])">Trademarks</a></li><li class="footernav_piracy"><a href="MATLAB:web([docroot '/acknowledgments.html'])">Acknowledgments</a></li></ul></div>
+</div>
+</div>
+</div>
+</footer>
+</div><!--close row-offcanvas-->
+</body>
+</html>
