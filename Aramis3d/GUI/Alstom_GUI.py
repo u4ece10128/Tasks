@@ -1,8 +1,30 @@
+import Simulate
+import threading
+import queue
+import tkinter
+import numpy as np
+from multiprocessing import Queue
 from tkinter import *
 from tkinter import ttk
 import tkinter.messagebox as mbox
-from RCM.Input_component import Parameters
+from RCM import Input_component
 from PIL import Image, ImageTk
+
+
+class ThreadedTask(threading.Thread):
+    def __init__(self, queue, params):
+        threading.Thread.__init__(self)
+        self.queue = queue
+        self.params = params
+
+    @staticmethod
+    def simulate_test(params):
+        simulate = Simulate.Simulate(params)
+        simulate.print_params()
+
+    def run(self):
+        self.simulate_test(self.params)  # Simulate long running process
+        self.queue.put("Task finished")
 
 
 class Root(Tk):
@@ -10,11 +32,14 @@ class Root(Tk):
         super(Root, self).__init__()
         # Root Widow Settings
         self.title("Alstom Control Application")
-        self.geometry('1120x720')
-        self.maxsize(width=1120, height=1000)
+        self.geometry('1120x760')
+        self.maxsize(width=1120, height=760)
         self.iconbitmap('0.ico')
         self.resizable(0, 0)
         self.configure(background='DimGray')
+
+        # threading variable
+        self.submit_thread = None
 
         # variables
         self.life = IntVar()
@@ -26,6 +51,8 @@ class Root(Tk):
         self.warranty_bool = BooleanVar()
         self.plt_percent_bool = BooleanVar()
         self.duration = IntVar()
+        self.set_cmp_name = StringVar()
+
         self.fm_1 = BooleanVar()
         self.fm_2 = BooleanVar()
         self.fm_3 = BooleanVar()
@@ -45,17 +72,17 @@ class Root(Tk):
         self.is_access_breaking_replace = BooleanVar()
         self.is_access_decoupling_replace = BooleanVar()
 
-        self.time_roof_replace = IntVar()
-        self.time_side_replace = IntVar()
-        self.time_pit_replace = IntVar()
-        self.time_breaking_replace = IntVar()
-        self.time_decoupling_replace = IntVar()
+        self.time_roof_replace = DoubleVar()
+        self.time_side_replace = DoubleVar()
+        self.time_pit_replace = DoubleVar()
+        self.time_breaking_replace = DoubleVar()
+        self.time_decoupling_replace = DoubleVar()
 
-        self.time_roof_repair = IntVar()
-        self.time_side_repair = IntVar()
-        self.time_pit_repair = IntVar()
-        self.time_breaking_repair = IntVar()
-        self.time_decoupling_repair = IntVar()
+        self.time_roof_repair = DoubleVar()
+        self.time_side_repair = DoubleVar()
+        self.time_pit_repair = DoubleVar()
+        self.time_breaking_repair = DoubleVar()
+        self.time_decoupling_repair = DoubleVar()
 
         self.fm_percentage_1 = IntVar()
         self.fm_percentage_2 = IntVar()
@@ -73,7 +100,8 @@ class Root(Tk):
                         "Mechanical",
                         "Electrical",
                         "Worn Out",
-                        "Unknown"]
+                        "Unknown",
+                        "Other"]
 
         self.options_menu_1 = StringVar()
         self.options_menu_2 = StringVar()
@@ -81,34 +109,47 @@ class Root(Tk):
         self.options_menu_4 = StringVar()
         self.options_menu_5 = StringVar()
 
-        self.time_roof_repair = IntVar()
-        self.time_roof_replace = IntVar()
+        self.beta_min_1 = DoubleVar()
+        self.beta_min_2 = DoubleVar()
+        self.beta_min_3 = DoubleVar()
+        self.beta_min_4 = DoubleVar()
+        self.beta_min_5 = DoubleVar()
 
-        self.cost_crew = IntVar()
-        self.mttr_corrective_replacement = IntVar()
-        self.mttr_corrective_repair = IntVar()
-        self.mttr_test = IntVar()
-        self.mttr_preventive = IntVar()
+        self.beta_max_1 = DoubleVar()
+        self.beta_max_2 = DoubleVar()
+        self.beta_max_3 = DoubleVar()
+        self.beta_max_4 = DoubleVar()
+        self.beta_max_5 = DoubleVar()
+
+        self.cost_crew = DoubleVar()
+        self.mttr_corrective_replacement = DoubleVar()
+        self.mttr_corrective_repair = DoubleVar()
+        self.mttr_test = DoubleVar()
+        self.mttr_preventive = DoubleVar()
         self.num_corrective = IntVar()
         self.num_preventive = IntVar()
         self.n_man_ts = IntVar()
-        self.co_spare_cm_1 = IntVar()
-        self.co_spare_cm_2 = IntVar()
-        self.co_spare_pm = IntVar()
+        self.co_spare_cm_1 = DoubleVar()
+        self.co_spare_cm_2 = DoubleVar()
+        self.co_spare_pm = DoubleVar()
 
-        self.co_pen_min = IntVar()
-        self.co_pen_max = IntVar()
-        self.night_time = IntVar()
-        self.ld = IntVar()
+        self.co_pen_min = DoubleVar()
+        self.co_pen_max = DoubleVar()
+        self.night_time = DoubleVar()
+        self.ld = DoubleVar()
 
         self.is_hidden = []
         self.percentage_fm = []
         self.prediction_interval_params = []
         self.options_menu = []
         self.popup_menu_list = []
+        self.beta_min = []
+        self.beta_max = []
         self.failure_entry_widget = []
         self.hidden_widget = []
         self.prediction_widget = []
+        self.beta_min_widget = []
+        self.beta_max_widget = []
 
         # FM Matrix
         self.fm_1_1 = IntVar()
@@ -178,8 +219,10 @@ class Root(Tk):
         self.Tst_min = IntVar()
         self.Tst_max = IntVar()
 
+        self.back_button = None
         self.progressbar = None
         self.stop_button = None
+        self.start_button = None
 
         self.tab_control = ttk.Notebook(self)
 
@@ -204,10 +247,365 @@ class Root(Tk):
         self.add_widgets_sheet1()
         self.add_widgets_sheet2()
 
+        self.queue = None
+
+    def start_rcm(self):
+        if self.is_mandate() is not False:
+            mbox.showinfo("Info", "RCM Analysis Start")
+            self.disable_button()
+            self.progressbar.start()
+            self.queue = Queue()
+            ThreadedTask(self.queue, params=self.load_input_params()).start()
+            self.after(100, self.process_queue)
+
+    def process_queue(self):
+        try:
+            msg = self.queue.get(0)
+            self.progressbar.stop()
+            self.enable_button()
+        except queue.Empty:
+            self.after(100, self.process_queue)
+
+    def stop_rcm(self):
+        mbox.showinfo("Info", "RCM Analysis Stopped")
+        self.progressbar.stop()
+
+    @staticmethod
+    def is_alpha(val):
+        """
+        Check if the entry content is strictly Alphabetic
+        :return:
+        """
+        if val.isalpha() is False:
+            return False
+        else:
+            return True
+
+    @staticmethod
+    def is_digit(val):
+        """
+        Check if the entry content is strictly Alphabetic
+        :return:
+        """
+        val = str(val)
+        if val.replace(".", "", 1).isdigit() is False:
+            return False
+        else:
+            return True
+
+    def is_mandate(self):
+        """
+        Check if there exists a value in the mandatory fields, If not raise error
+        :return:
+        """
+        # Train Life Parameters
+        try:
+            self.is_digit(self.life.get())
+            if self.life.get() <= 0:
+                mbox.showerror("Error", "Invalid Train Life Field \nProvide Positive Value")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Train Life Field \nProvide Positive Value")
+            return False
+
+        try:
+            self.is_digit(self.h_day.get())
+            if self.h_day.get() <= 0:
+                mbox.showerror("Error", "Invalid Operative Hours \n Field")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Operative Hours \n Field")
+            return False
+
+        if self.fail_mode.get() == 0:
+                mbox.showerror("Error", "Select Atleast 1 Failure Mode")
+                return False
+
+        if self.warranty_bool == 1:
+            try:
+                self.is_digit(self.duration.get())
+                if self.duration.get() <= 0:
+                    mbox.showerror("Error", "Invalid Warranty Period")
+                    return False
+            except tkinter.TclError:
+                mbox.showerror("Error", "Invalid Warranty Period")
+                return False
+
+        # Component Parameters
+
+        if not self.is_alpha(self.set_cmp_name.get()):
+            print(type(self.set_cmp_name.get()))
+            if len(self.set_cmp_name.get()) == 0:
+                mbox.showerror("Error", "Invalid Component Field")
+                return False
+            mbox.showerror("Error", "Invalid Component Field")
+            return False
+
+        try:
+            self.is_digit(self.cmp_fr.get())
+            if self.cmp_fr.get() < 0:
+                mbox.showerror("Error", "Invalid Failure Rate")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Failure Rate")
+            return False
+
+        try:
+            self.is_digit(self.cmp_uf.get())
+            if self.cmp_uf.get() < 0:
+                mbox.showerror("Error", "Invalid Utilization Factor")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Utilization Factor")
+            return False
+
+        # LCC - Parameters I
+        try:
+            self.is_digit(self.time_roof_replace.get())
+            if self.time_roof_replace.get() < 0:
+                mbox.showerror("Error", "Invalid LCC I Parameters - Roof")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid LCC I Parameters - Roof")
+            return False
+
+        try:
+            self.is_digit(self.time_side_replace.get())
+            if self.time_side_replace.get() < 0:
+                mbox.showerror("Error", "Invalid LCC I Parameters - Side")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid LCC I Parameters - Side")
+            return False
+
+        try:
+            self.is_digit(self.time_pit_replace.get())
+            if self.time_pit_replace.get() < 0:
+                mbox.showerror("Error", "Invalid LCC I Parameters - Pit")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid LCC I Parameters - Pit")
+            return False
+
+        try:
+            self.is_digit(self.time_decoupling_replace.get())
+            if self.time_decoupling_replace.get() < 0:
+                mbox.showerror("Error", "Invalid LCC I Parameters - Decoupling")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid LCC I Parameters - Decoupling")
+            return False
+
+        try:
+            self.is_digit(self.time_breaking_replace.get())
+            if self.time_breaking_replace.get() < 0:
+                mbox.showerror("Error", "Invalid LCC I Parameters - Breaking")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid LCC I Parameters - Breaking")
+            return False
+
+        try:
+            self.is_digit(self.time_roof_repair.get())
+            if self.time_roof_repair.get() < 0:
+                mbox.showerror("Error", "Invalid LCC I Parameters - Roof")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid LCC I Parameters - Roof")
+            return False
+
+        try:
+            self.is_digit(self.time_side_repair.get())
+            if self.time_side_repair.get() < 0:
+                mbox.showerror("Error", "Invalid LCC I Parameters - Side")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid LCC I Parameters - Side")
+            return False
+
+        try:
+            self.is_digit(self.time_pit_repair.get())
+            if self.time_pit_repair.get() < 0:
+                mbox.showerror("Error", "Invalid LCC I Parameters - Pit")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid LCC I Parameters - Pit")
+            return False
+
+        try:
+            self.is_digit(self.time_decoupling_repair.get())
+            if self.time_decoupling_repair.get() < 0:
+                mbox.showerror("Error", "Invalid LCC I Parameters - Decoupling")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid LCC I Parameters - Decoupling")
+            return False
+
+        try:
+            self.is_digit(self.time_breaking_repair.get())
+            if self.time_breaking_repair.get() < 0:
+                mbox.showerror("Error", "Invalid LCC I Parameters - Breaking")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid LCC I Parameters - Breaking")
+            return False
+
+        # LCC - Parameters II
+        try:
+            self.is_digit(self.mttr_corrective_replacement.get())
+            if self.mttr_corrective_replacement.get() < 0:
+                mbox.showerror("Error", "Invalid MTTR Corrective\nReplacement Value")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid MTTR Corrective\nReplacement Value")
+            return False
+
+        try:
+            self.is_digit(self.mttr_corrective_repair.get())
+            if self.mttr_corrective_repair.get() < 0:
+                mbox.showerror("Error", "Invalid MTTR Corrective\nRepair Value")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid MTTR Corrective\nRepair Value")
+            return False
+
+        try:
+            self.is_digit(self.mttr_test.get())
+            if self.mttr_test.get() < 0:
+                mbox.showerror("Error", "Invalid MTTR Test Value")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid MTTR Test Value")
+            return False
+
+        try:
+            self.is_digit(self.num_corrective.get())
+            if self.num_corrective.get() < 0:
+                mbox.showerror("Error", "Invalid N. of Maintainer \nCorrective Value")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid N. of Maintainer \nCorrective Value")
+            return False
+
+        try:
+            self.is_digit(self.num_preventive.get())
+            if self.num_preventive.get() < 0:
+                mbox.showerror("Error", "Invalid N. of Maintainer\npreventive Value")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid N. of Maintainer\npreventive Value")
+            return False
+
+        try:
+            self.is_digit(self.n_man_ts.get())
+            if self.n_man_ts.get() < 0:
+                mbox.showerror("Error", "Invalid N. Maintainer\nTest Value")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid N. Maintainer\nTest Value")
+            return False
+        try:
+            self.is_digit(self.cost_crew.get())
+            if self.cost_crew.get() < 0:
+                mbox.showerror("Error", "Invalid Crew Cost")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Crew Cost")
+            return False
+        try:
+            self.is_digit(self.co_spare_cm_1.get())
+            if self.co_spare_cm_1.get() < 0:
+                mbox.showerror("Error", "Invalid Replacement Cost")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Replacement Value")
+            return False
+
+        try:
+            self.is_digit(self.co_spare_cm_2.get())
+            if self.co_spare_cm_2.get() < 0:
+                mbox.showerror("Error", "Invalid Repair Cost")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Repair Cost")
+            return False
+
+        try:
+            self.is_digit(self.co_spare_pm.get())
+            if self.co_spare_pm.get() < 0:
+                mbox.showerror("Error", "Invalid Replacement\n PM Cost")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Replacement\n PM Cost")
+            return False
+
+        try:
+            self.is_digit(self.co_pen_min.get())
+            if self.co_pen_min.get() < 0:
+                mbox.showerror("Error", "Invalid Min Penalty Cost")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Min Penalty Cost")
+            return False
+
+        try:
+            self.is_digit(self.co_pen_max.get())
+            if self.co_pen_max.get() < 0:
+                mbox.showerror("Error", "Invalid Max Penalty Cost")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Max Penalty Cost")
+            return False
+
+        try:
+            self.is_digit(self.co_spare_cm_2.get())
+            if self.co_spare_cm_2.get() < 0:
+                mbox.showerror("Error", "Invalid Repair Cost")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Repair Cost")
+            return False
+
+        try:
+            self.is_digit(self.night_time.get())
+            if self.night_time.get() < 0:
+                mbox.showerror("Error", "Invalid Intervention Period")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Intervention Period")
+            return False
+
+        try:
+            self.is_digit(self.ld.get())
+            if self.ld.get() < 0:
+                mbox.showerror("Error", "Invalid Time for Reaching Deposit")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Time for Reaching Deposit")
+            return False
+
+    def disable_button(self):
+        """
+        Disable Entry and Button Widgets - Sheet 2
+        :return:
+        """
+        self.back_button.config(state=DISABLED)
+        self.start_button.config(state=DISABLED)
+        self.stop_button.config(state=ACTIVE)
+
+    def enable_button(self):
+        """
+        Enable Entry and Button Widgets
+        :return:
+        """
+        self.stop_button.config(state=DISABLED)
+        self.back_button.config(state=ACTIVE)
+        self.start_button.config(state=ACTIVE)
+
     def to_tab1(self):
         self.tab_control.tab(0, state="normal")
         self.tab_control.select(self.tab1)
-        self.geometry('1120x720')
+        self.geometry('1120x760')
         self.tab_control.tab(1, state="disabled")
 
     def to_tab2(self):
@@ -216,24 +614,103 @@ class Root(Tk):
         self.geometry('530x700')
         self.tab_control.tab(0, state="disabled")
 
-    def start_rcm(self):
-        mbox.showinfo("Info", "RCM Analysis Start")
+    def load_input_params(self):
+        """
+        Build Input Parameters object to run the simulation
+        :return: Object Instancc
+        """
+        input_params = Input_component.Parameters(self.set_cmp_name.get())
+        # Train Life
+        input_params.Life = self.life.get()
+        input_params.h_day = self.h_day.get()
+        input_params.n_fm = self.fail_mode.get()
+        input_params.Warranty = self.duration.get()
 
-        input_params = Parameters()
+        # Component Parameters
+        # Component is already passed as an initialization parameter
+        input_params.FT = self.cmp_fr.get()
+        input_params.U = self.cmp_uf.get()
 
-        self.progressbar.start()
-        self.stop_button.config(state=ACTIVE)
-        # call main.py and pass all the parameters
+        # Failure Modes
+        input_params.P_failure_mode = np.zeros((self.fail_mode.get(), 1), dtype=np.float64)
+        input_params.Tau = np.zeros((self.fail_mode.get(), 1), dtype=np.float64)
+        for fail_mode in range(0, self.fail_mode.get()):
+            input_params.P_failure_mode[fail_mode, 0] = self.percentage_f[fail_mode].get()
+            input_params.Tau[fail_mode, 0] = self.prediction_interval_params[fail_mode].get()
 
-    def stop_rcm(self):
-        mbox.showinfo("Info", "RCM Analysis Stopped")
-        self.progressbar.stop()
+        # LCC parameters I
+        # Accesibility procedure
+        input_params.acc = np.zeros((5, 3, 2), dtype=np.float64)
+
+        input_params.acc[0, 1, 0] = self.is_access_roof_replace.get()
+        input_params.acc[1, 1, 0] = self.is_access_side_replace.get()
+        input_params.acc[2, 1, 0] = self.is_access_pit_replace.get()
+        input_params.acc[3, 1, 0] = self.is_access_breaking_replace.get()
+        input_params.acc[4, 1, 0] = self.is_access_decoupling_replace.get()
+
+        input_params.acc[0, 1, 1] = self.is_access_roof_repair.get()
+        input_params.acc[1, 1, 1] = self.is_access_side_repair.get()
+        input_params.acc[2, 1, 1] = self.is_access_pit_repair.get()
+        input_params.acc[3, 1, 1] = self.is_access_breaking_repair.get()
+        input_params.acc[4, 1, 1] = self.is_access_decoupling_repair.get()
+
+        input_params.acc[0, 0, :] = self.time_roof_replace.get()
+        input_params.acc[1, 0, :] = self.time_side_replace.get()
+        input_params.acc[2, 0, :] = self.time_pit_replace.get()
+        input_params.acc[3, 0, :] = self.time_breaking_replace.get()
+        input_params.acc[4, 0, :] = self.time_decoupling_replace.get()
+
+        input_params.acc[0, 2, :] = self.time_roof_repair.get()
+        input_params.acc[1, 2, :] = self.time_side_repair.get()
+        input_params.acc[2, 2, :] = self.time_pit_repair.get()
+        input_params.acc[3, 2, :] = self.time_breaking_repair.get()
+        input_params.acc[4, 2, :] = self.time_decoupling_repair.get()
+
+        # LCC parameters II
+        input_params.MTTRc = np.r_[self.mttr_corrective_replacement.get(), self.mttr_corrective_repair.get()]
+        input_params.MTTRsc = self.mttr_preventive.get()
+        input_params.MTTRts = self.mttr_test.get()
+
+        input_params.n_man_cm = self.num_corrective.get()
+        input_params.n_man_pm = self.num_preventive.get()
+        input_params.n_man_ts = self.n_man_ts.get()
+
+        input_params.co_crew_h = self.cost_crew.get()
+
+        # corrective maintenance - replacement and repair cost
+        input_params.co_spare_cm = np.zeros((2, 1), dtype=np.float64)
+        input_params.co_spare_cm[0] = self.co_spare_cm_1.get()
+        input_params.co_spare_cm[1] = self.co_spare_cm_2.get()
+
+        # preventive maintenance
+        input_params.co_spare_pm = self.co_spare_pm.get()
+        input_params.co_pen_min = self.co_pen_min.get()
+        input_params.co_pen_max = self.co_pen_max.get()
+        input_params.night_time = self.night_time.get()
+        input_params.ld = self.ld.get()
+        return input_params
 
     def check_percentage(self):
         sum_per = self.fm_percentage_1.get() + self.fm_percentage_2.get() + self.fm_percentage_3.get() + \
                   self.fm_percentage_4.get() + self.fm_percentage_5.get()
         if sum_per != 100.0:
             mbox.showerror('Error', 'Invalid Split in Percentage values')
+
+    def enable_range_beta(self, *args):
+        val = 0
+        for val in range(0, self.fail_mode.get()+1):
+            if val != 0:
+                if self.options_menu[val-1].get() == "Other":
+                    self.beta_min_widget[val-1].config(state=ACTIVE)
+                    self.beta_max_widget[val - 1].config(state=ACTIVE)
+                else:
+                    self.beta_min_widget[val - 1].config(state=DISABLED)
+                    self.beta_max_widget[val - 1].config(state=DISABLED)
+        for i in range(val + 1, 6):
+            self.beta_min_widget[i - 1].config(state=DISABLED)
+            self.beta_max_widget[i - 1].config(state=DISABLED)
+            self.beta_min[i - 1].set(float(0))
+            self.beta_max[i - 1].set(float(0))
 
     def change_drop_down_fail_mode(self, *args):
         # Activate Buttons
@@ -250,6 +727,7 @@ class Root(Tk):
                 self.fm_corrective_entry[val-1].config(state=ACTIVE)
                 self.fm_preventive_entry[val-1].config(state=ACTIVE)
                 self.popup_menu_list[val-1].config(state=ACTIVE)
+
         for i in range(val+1, 6):
             widget_percentage = self.failure_entry_widget[i - 1]
             widget_percentage.config(state=DISABLED)
@@ -259,6 +737,8 @@ class Root(Tk):
             self.fm_corrective_entry[i - 1].config(state=DISABLED)
             self.fm_preventive_entry[i - 1].config(state=DISABLED)
             self.popup_menu_list[i - 1].config(state=DISABLED)
+            self.beta_min_widget[i - 1].config(state=DISABLED)
+            self.beta_max_widget[i - 1].config(state=DISABLED)
             # set the default Value
             self.is_hidden[i-1].set(0)
             self.percentage_fm[i-1].set(0)
@@ -357,22 +837,26 @@ class Root(Tk):
         # plot Percentage Block - End
 
         # Label Frame
-        label_frame_1 = ttk.LabelFrame(self.tab1, text="Component Parameters", height=20, width=10)
+        label_frame_1 = ttk.LabelFrame(self.tab1, text="Component Parameters", height=20, width=20)
         label_frame_1.config(width=100, height=20)
-        label_frame_1.grid(column=0, row=16, padx=5, columnspan=10)
+        label_frame_1.grid(column=0, row=16, padx=(5, 0))
 
         # add Labels abd Entry widgets
+        ttk.Label(label_frame_1, text="Component: ").grid(column=0, row=0, sticky='W')
+        set_component_name = ttk.Entry(label_frame_1, textvariable=self.set_cmp_name, width=12)
+        set_component_name.grid(row=0, column=1, sticky='W', padx=(0, 100))
+
         set_failure_rate = ttk.Label(label_frame_1, text="Failure Rate: ")
-        set_failure_rate.grid(column=0, row=16, sticky='W')
+        set_failure_rate.grid(column=0, row=1, sticky='W')
 
         set_failure_rate_box = ttk.Entry(label_frame_1, textvariable=self.cmp_fr, width=8)
-        set_failure_rate_box.grid(row=16, column=20, sticky='W')
+        set_failure_rate_box.grid(row=1, column=1, sticky='W', padx=(0, 100))
 
         set_uf = ttk.Label(label_frame_1, text="Utilization factor: ")
-        set_uf.grid(row=18, column=0, sticky='W')
+        set_uf.grid(row=2, column=0, sticky='W', pady=(0, 120))
 
         set_uf_box = ttk.Entry(label_frame_1, textvariable=self.cmp_uf, width=8)
-        set_uf_box.grid(row=18, column=20, sticky='W')
+        set_uf_box.grid(row=2, column=1, sticky='W', padx=(0, 100), pady=(0, 120))
 
         # Check Buttons for warranty and Plot Percentage
         # label Frame - Failure Modes
@@ -387,7 +871,13 @@ class Root(Tk):
         hidden.grid(row=0, column=20, columnspan=4, sticky="W", pady=(5, 0))
 
         cmp_type = ttk.Label(label_frame_3, text="Type")
-        cmp_type.grid(row=0, column=25, sticky=N+E+W+S, pady=(5, 0), padx=(55, 45))
+        cmp_type.grid(row=0, column=25, sticky=N+E+W+S, pady=(5, 0), padx=(55, 0), columnspan=4)
+
+        ttk.Label(label_frame_3, text="Beta_min").grid(row=0, column=30,
+                                                       sticky=N + E + W + S, pady=(5, 0), padx=(10, 0), columnspan=4)
+
+        ttk.Label(label_frame_3, text="Beta_max").grid(row=0, column=35,
+                                                       sticky=N + E + W + S, pady=(5, 0), padx=(4, 0))
 
         prediction_interval = ttk.Label(label_frame_3, text="Prediction \nInterval (\u03C4)")
         prediction_interval.grid(row=0, column=16, columnspan=4, sticky="W", pady=(5, 0))
@@ -401,6 +891,12 @@ class Root(Tk):
 
         self.options_menu = [self.options_menu_1, self.options_menu_2, self.options_menu_3, self.options_menu_4,
                              self.options_menu_5]
+
+        self.cmp_type.trace('w', self.enable_range_beta)
+
+        self.beta_min = [self.beta_min_1, self.beta_min_2, self.beta_min_3, self.beta_min_4, self.beta_min_5]
+        self.beta_max = [self.beta_max_1, self.beta_max_2, self.beta_max_3, self.beta_max_4, self.beta_max_5]
+
         options = self.options
 
         for mode in range(1, 6):
@@ -421,15 +917,51 @@ class Root(Tk):
             prediction_interval_entry.config(state=DISABLED)
             prediction_interval_entry.grid(row=mode+1, column=16, columnspan=4, sticky='W')
 
-            # Label + listbox
-            popup_menu = ttk.OptionMenu(label_frame_3, self.options_menu[mode-1], *options)
-            popup_menu.config(width=9, state=DISABLED)
-            popup_menu.grid(column=25, row=mode+1, sticky="W", padx=(15, 45))
+            beta_min_entry = ttk.Entry(label_frame_3, textvariable=self.beta_min[mode-1], width=5)
+            beta_min_entry.config(state=DISABLED)
+            beta_min_entry.grid(column=30, row=mode+1, sticky="W", padx=(15, 0), columnspan=4)
+
+            beta_max_entry = ttk.Entry(label_frame_3, textvariable=self.beta_max[mode - 1], width=5)
+            beta_max_entry.config(state=DISABLED)
+            beta_max_entry.grid(column=35, row=mode + 1, sticky="W", columnspan=4, padx=(2, 0))
 
             self.failure_entry_widget.append(mode_percent_entry)
             self.hidden_widget.append(hidden_check)
             self.prediction_widget.append(prediction_interval_entry)
-            self.popup_menu_list.append(popup_menu)
+            self.beta_min_widget.append(beta_min_entry)
+            self.beta_max_widget.append(beta_max_entry)
+
+        popup_menu_1 = ttk.OptionMenu(label_frame_3, self.options_menu[0], *options)
+        popup_menu_1.config(width=9, state=DISABLED)
+        popup_menu_1.grid(column=25, row=1 + 1, sticky="W", columnspan=4)
+
+        self.options_menu[0].trace('w', self.enable_range_beta)
+
+        popup_menu_2 = ttk.OptionMenu(label_frame_3, self.options_menu[1], *options)
+        popup_menu_2.config(width=9, state=DISABLED)
+        popup_menu_2.grid(column=25, row=2 + 1, sticky="W", columnspan=4)
+
+        self.options_menu[1].trace('w', self.enable_range_beta)
+
+        popup_menu_3 = ttk.OptionMenu(label_frame_3, self.options_menu[2], *options)
+        popup_menu_3.config(width=9, state=DISABLED)
+        popup_menu_3.grid(column=25, row=3 + 1, sticky="W", columnspan=4)
+
+        self.options_menu[2].trace('w', self.enable_range_beta)
+
+        popup_menu_4 = ttk.OptionMenu(label_frame_3, self.options_menu[3], *options)
+        popup_menu_4.config(width=9, state=DISABLED)
+        popup_menu_4.grid(column=25, row=4 + 1, sticky="W", columnspan=4)
+
+        self.options_menu[3].trace('w', self.enable_range_beta)
+
+        popup_menu_5 = ttk.OptionMenu(label_frame_3, self.options_menu[4], *options)
+        popup_menu_5.config(width=9, state=DISABLED)
+        popup_menu_5.grid(column=25, row=5 + 1, sticky="W", columnspan=4)
+
+        self.options_menu[4].trace('w', self.enable_range_beta)
+
+        self.popup_menu_list = [popup_menu_1, popup_menu_2, popup_menu_3, popup_menu_4, popup_menu_5]
 
         # label Frame - LCC parameters - I
 
@@ -496,34 +1028,31 @@ class Root(Tk):
         ttk.Label(label_frame_5, text="MTTR Corrective \nReplacement(hr): ").grid(row=16, column=0, columnspan=10,
                                                                                   sticky="W", pady=(5, 0))
 
-        ttk.Entry(label_frame_5, textvariable=self.mttr_corrective_replacement, width=8).grid(row=16,
-                                                                                              column=11, columnspan=5,
-                                                                                              sticky='W', pady=(5, 0))
+        mttrc_replacement_entry = ttk.Entry(label_frame_5, textvariable=self.mttr_corrective_replacement,
+                                            width=8)
+        mttrc_replacement_entry.grid(row=16, column=11, columnspan=5, sticky='W', pady=(5, 0))
 
         # MTTR for corrective (h), repair
         ttk.Label(label_frame_5, text="MTTR Corrective \nRepair(hr): ").grid(row=16, column=16, columnspan=10,
                                                                              sticky="W", pady=(5, 0), padx=(10, 0))
-        ttk.Entry(label_frame_5, textvariable=self.mttr_corrective_repair, width=8).grid(row=16, column=26,
-                                                                                         columnspan=5, sticky='W',
-                                                                                         pady=(5, 0))
+        mttrc_repair_entry = ttk.Entry(label_frame_5, textvariable=self.mttr_corrective_repair, width=8)
+        mttrc_repair_entry.grid(row=16, column=26, columnspan=5, sticky='W', pady=(5, 0))
+
         # MTTR Test
         ttk.Label(label_frame_5, text="MTTR Test(hr): ").grid(row=16, column=31, columnspan=10,
                                                               sticky="W", pady=(5, 0), padx=(10, 0))
 
-        ttk.Entry(label_frame_5, textvariable=self.mttr_test, width=8).grid(row=16, column=41,
-                                                                            columnspan=5, sticky='W',
-                                                                            pady=(5, 0))
+        mttrc_test_entry = ttk.Entry(label_frame_5, textvariable=self.mttr_test, width=8)
+        mttrc_test_entry.grid(row=16, column=41, columnspan=5, sticky='W', padx=(0, 45), pady=(5, 0))
 
         ttk.Label(label_frame_5, text="MTTR \nPreventive(hr): ").grid(row=18, column=0, columnspan=10,
                                                                       sticky="W", pady=(5, 0))
 
-        ttk.Entry(label_frame_5, textvariable=self.mttr_preventive, width=8).grid(row=18, column=11,
-                                                                                  columnspan=5, sticky='W',
-                                                                                  pady=(5, 0))
+        mttrc_preventive_entry = ttk.Entry(label_frame_5, textvariable=self.mttr_preventive, width=8)
+        mttrc_preventive_entry.grid(row=18, column=11, columnspan=5, sticky='W', pady=(5, 0))
 
         # Number of maintainer for corrective
-        ttk.Label(label_frame_5, text="N. of Maintainer\n(Corrective): ").grid(row=20, column=0,  columnspan=10,
-                                                                             sticky="W", pady=(5, 0))
+        ttk.Label(label_frame_5, text="N. of Maintainer\n(Corrective): ").grid(row=20, column=0,  columnspan=10, sticky="W", pady=(5, 0))
 
         ttk.Entry(label_frame_5, textvariable=self.num_corrective, width=8).grid(row=20, column=11,
                                                                                  columnspan=5,
@@ -541,7 +1070,7 @@ class Root(Tk):
                                                                          pady=(5, 0),
                                                                          padx=(10, 0))
 
-        ttk.Entry(label_frame_5, textvariable=self.n_man_ts, width=8).grid(row=20, column=41, columnspan=5,
+        ttk.Entry(label_frame_5, textvariable=self.n_man_ts, width=8).grid(row=20, column=41, columnspan=5,padx=(0, 45),
                                                                            sticky='W', pady=(5, 0))
 
         # Crew Cost
@@ -564,7 +1093,7 @@ class Root(Tk):
                                                                      padx=(10, 0))
 
         repair_cost_entry = ttk.Entry(label_frame_5, textvariable=self.co_spare_cm_2, width=8)
-        repair_cost_entry.grid(row=22, column=41, columnspan=5, sticky='W', pady=(5, 0))
+        repair_cost_entry.grid(row=22, column=41, columnspan=5, sticky='W', padx=(0, 45), pady=(5, 0))
 
         ttk.Label(label_frame_5, text="Replacement Cost \nPM (\u20ac):").grid(row=24, column=0,
                                                                               columnspan=10, sticky="W", pady=(5, 0))
@@ -587,7 +1116,7 @@ class Root(Tk):
                                                                             padx=(10, 0))
 
         ttk.Entry(label_frame_5, textvariable=self.co_pen_max, width=8).grid(row=24, column=41,
-                                                                             columnspan=5, sticky='W',
+                                                                             columnspan=5, sticky='W',padx=(0, 45),
                                                                              pady=(5, 0))
 
         ttk.Label(label_frame_5, text="Allowed Night \nIntervention Period(hr):").grid(row=26, column=0,
@@ -609,16 +1138,6 @@ class Root(Tk):
         next_button = ttk.Button(self.tab1, text='Next', command=self.to_tab2)
         next_button.grid(row=26, column=26, sticky=N+E+S+W, pady=(0, 10))
 
-        # replacement Cost PM
-
-        # // Number of maintainer for preventive
-        # mttr_corrective_label =
-
-        # label_5 = ttk.Label(self.tab1, text="LCC Parameters - II ")
-        # label_5.grid(column=20, row=16, padx=20, pady=(10, 0), columnspan=20)
-        #
-        # cost_crew = ttk.Label(self.tab1, text="Crew Cost (Euro/Hr)")
-        # cost_crew.grid(column=20, row=18)
     def add_widgets_sheet2(self):
         """
         Default Parameters:
@@ -710,9 +1229,11 @@ class Root(Tk):
         proposed_test_interval_max_entry.grid(row=10, column=1,  sticky=W)
 
         # navigation Buttons
-        ttk.Button(self.tab2, text='Back', command=self.to_tab1).grid(row=49, column=0, sticky=W, padx=(20, 0))
+        self.back_button = ttk.Button(self.tab2, text='Back', command=self.to_tab1)
+        self.back_button.grid(row=49, column=0, sticky=W, padx=(20, 0))
 
-        ttk.Button(self.tab2, text='Start', command=self.start_rcm).grid(row=49, column=3, sticky=E)
+        self.start_button = ttk.Button(self.tab2, text='Start', command=self.start_rcm)
+        self.start_button.grid(row=49, column=3, sticky=E)
 
         self.progressbar = ttk.Progressbar(self.tab2, mode='indeterminate', length=20)
         self.progressbar.grid(row=50, column=0, columnspan=4, sticky=N + E + W + S, padx=(20, 0))
