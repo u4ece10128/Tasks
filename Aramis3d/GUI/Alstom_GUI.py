@@ -1,9 +1,8 @@
 import Simulate
-import threading
 import queue
 import tkinter
 import numpy as np
-from multiprocessing import Queue
+from multiprocessing import Queue, Process
 from tkinter import *
 from tkinter import ttk
 import tkinter.messagebox as mbox
@@ -11,35 +10,16 @@ from RCM import Input_component
 from PIL import Image, ImageTk
 
 
-class ThreadedTask(threading.Thread):
-    def __init__(self, queue, params):
-        threading.Thread.__init__(self)
-        self.queue = queue
-        self.params = params
-
-    @staticmethod
-    def simulate_test(params):
-        simulate = Simulate.Simulate(params)
-        simulate.print_params()
-
-    def run(self):
-        self.simulate_test(self.params)  # Simulate long running process
-        self.queue.put("Task finished")
-
-
 class Root(Tk):
     def __init__(self):
         super(Root, self).__init__()
-        # Root Widow Settings
+        # Root Window Settings
         self.title("Alstom Control Application")
         self.geometry('1120x760')
         self.maxsize(width=1120, height=760)
         self.iconbitmap('0.ico')
         self.resizable(0, 0)
         self.configure(background='DimGray')
-
-        # threading variable
-        self.submit_thread = None
 
         # variables
         self.life = IntVar()
@@ -50,7 +30,7 @@ class Root(Tk):
         self.fail_mode = IntVar()
         self.warranty_bool = BooleanVar()
         self.plt_percent_bool = BooleanVar()
-        self.duration = IntVar()
+        self.duration = DoubleVar()
         self.set_cmp_name = StringVar()
 
         self.fm_1 = BooleanVar()
@@ -102,6 +82,11 @@ class Root(Tk):
                         "Worn Out",
                         "Unknown",
                         "Other"]
+
+        self.range_beta = {"Mechanical": [1.0, 3.0],
+                           "Electrical": [0.3, 1],
+                           "Worn Out": [2.0, 5.0],
+                           "Unknown": [0.5, 1.2]}
 
         self.options_menu_1 = StringVar()
         self.options_menu_2 = StringVar()
@@ -247,34 +232,49 @@ class Root(Tk):
         self.add_widgets_sheet1()
         self.add_widgets_sheet2()
 
-        self.queue = None
+    def simulate_test(self):
+        params = self.load_input_params()
+        simulate = Simulate.Simulate(params)
+        simulate.print_params()
+
+    def start_process(self):
+        t1 = Process(target=self.simulate_test)
+        return t1
 
     def start_rcm(self):
+        global p
         if self.is_mandate() is not False:
             mbox.showinfo("Info", "RCM Analysis Start")
             self.disable_button()
             self.progressbar.start()
-            self.queue = Queue()
-            ThreadedTask(self.queue, params=self.load_input_params()).start()
-            self.after(100, self.process_queue)
+            p = self.start_process()
+            # self.queue = Queue()
+            # self.t1 = ThreadedTask(self.queue, params=self.load_input_params())
+            p.start()
+            print(p)
+            self.after(100, self.process)
 
-    def process_queue(self):
-        try:
-            msg = self.queue.get(0)
+    def process(self):
+        if p.is_alive():
+            self.after(100, self.process)
+        else:
+            p.terminate()
+            print("Process Finished")
             self.progressbar.stop()
             self.enable_button()
-        except queue.Empty:
-            self.after(100, self.process_queue)
+            print(p, p.is_alive)
 
     def stop_rcm(self):
         mbox.showinfo("Info", "RCM Analysis Stopped")
+        p.terminate()
         self.progressbar.stop()
+        self.enable_button()
 
     @staticmethod
     def is_alpha(val):
         """
         Check if the entry content is strictly Alphabetic
-        :return:
+        :return: Boolean
         """
         if val.isalpha() is False:
             return False
@@ -285,7 +285,7 @@ class Root(Tk):
     def is_digit(val):
         """
         Check if the entry content is strictly Alphabetic
-        :return:
+        :return: Boolean
         """
         val = str(val)
         if val.replace(".", "", 1).isdigit() is False:
@@ -296,7 +296,7 @@ class Root(Tk):
     def is_mandate(self):
         """
         Check if there exists a value in the mandatory fields, If not raise error
-        :return:
+        :return: Boolean
         """
         # Train Life Parameters
         try:
@@ -321,8 +321,10 @@ class Root(Tk):
                 mbox.showerror("Error", "Select Atleast 1 Failure Mode")
                 return False
 
-        if self.warranty_bool == 1:
+        if self.warranty_bool.get() == 1:
+            print("I am Here")
             try:
+                print(self.duration.get())
                 self.is_digit(self.duration.get())
                 if self.duration.get() <= 0:
                     mbox.showerror("Error", "Invalid Warranty Period")
@@ -343,7 +345,7 @@ class Root(Tk):
 
         try:
             self.is_digit(self.cmp_fr.get())
-            if self.cmp_fr.get() < 0:
+            if self.cmp_fr.get() <= 0:
                 mbox.showerror("Error", "Invalid Failure Rate")
                 return False
         except tkinter.TclError:
@@ -352,13 +354,38 @@ class Root(Tk):
 
         try:
             self.is_digit(self.cmp_uf.get())
-            if self.cmp_uf.get() < 0:
+            if self.cmp_uf.get() <= 0:
                 mbox.showerror("Error", "Invalid Utilization Factor")
                 return False
         except tkinter.TclError:
             mbox.showerror("Error", "Invalid Utilization Factor")
             return False
 
+        # Failure Modes
+        if self.check_percentage():
+            pass
+        else:
+            mbox.showerror("Error", "Invalid Percentage Split - Failure Modes")
+            return False
+
+        for num_mode in range(self.fail_mode.get()):
+            try:
+                self.is_digit(self.prediction_interval_params[num_mode].get())
+                if self.options_menu[num_mode].get() == "Other":
+                    self.is_digit(self.beta_min[num_mode].get())
+                    self.is_digit(self.beta_max[num_mode].get())
+
+                if self.prediction_interval_params[num_mode].get() < 0 and self.beta_min[num_mode].get() < 0 \
+                        and self.beta_max[num_mode].get() < 0:
+                    mbox.showerror("Error", "Invalid Failure Mode Parameters")
+                    return False
+                if self.options_menu[num_mode].get() == "Select Type":
+                    mbox.showerror("Error", "Invalid Type of Failure Mode")
+                    return False
+
+            except tkinter.TclError:
+                mbox.showerror("Error", "Invalid Failure Mode Parameters")
+                return False
         # LCC - Parameters I
         try:
             self.is_digit(self.time_roof_replace.get())
@@ -617,14 +644,17 @@ class Root(Tk):
     def load_input_params(self):
         """
         Build Input Parameters object to run the simulation
-        :return: Object Instancc
+        :return: Object Instance
         """
         input_params = Input_component.Parameters(self.set_cmp_name.get())
         # Train Life
         input_params.Life = self.life.get()
         input_params.h_day = self.h_day.get()
         input_params.n_fm = self.fail_mode.get()
-        input_params.Warranty = self.duration.get()
+        if self.warranty_bool == 1:
+            input_params.Warranty = self.duration.get()
+        else:
+            input_params.Warranty = 0
 
         # Component Parameters
         # Component is already passed as an initialization parameter
@@ -634,12 +664,37 @@ class Root(Tk):
         # Failure Modes
         input_params.P_failure_mode = np.zeros((self.fail_mode.get(), 1), dtype=np.float64)
         input_params.Tau = np.zeros((self.fail_mode.get(), 1), dtype=np.float64)
-        for fail_mode in range(0, self.fail_mode.get()):
-            input_params.P_failure_mode[fail_mode, 0] = self.percentage_f[fail_mode].get()
-            input_params.Tau[fail_mode, 0] = self.prediction_interval_params[fail_mode].get()
+        input_params.hidden = np.zeros((self.fail_mode.get(), 1), dtype=np.int64)
+        input_params.beta = np.zeros((self.fail_mode.get(), 3), dtype=np.float64)
 
+        for fail_mode in range(0, self.fail_mode.get()):
+            input_params.P_failure_mode[fail_mode, 0] = self.percentage_fm[fail_mode].get() / 100.0
+            input_params.Tau[fail_mode, 0] = self.prediction_interval_params[fail_mode].get()
+            input_params.hidden[fail_mode, 0] = self.is_hidden[fail_mode].get()
+            if self.options_menu[fail_mode].get() == "Mechanical":
+                input_params.beta[fail_mode, 0:3] = np.linspace(self.range_beta["Mechanical"][0],
+                                                                self.range_beta["Mechanical"][1],
+                                                                3, dtype=np.float64)
+
+            if self.options_menu[fail_mode].get() == "Electrical":
+                input_params.beta[fail_mode, 0:3] = np.linspace(self.range_beta["Electrical"][0],
+                                                                self.range_beta["Electrical"][1],
+                                                                3, dtype=np.float64)
+
+            if self.options_menu[fail_mode].get() == "Worn Out":
+                input_params.beta[fail_mode, 0:3] = np.linspace(self.range_beta["Worn Out"][0],
+                                                                self.range_beta["Worn Out"][1],
+                                                                3, dtype=np.float64)
+            if self.options_menu[fail_mode].get() == "Unknown":
+                input_params.beta[fail_mode, 0:3] = np.linspace(self.range_beta["Unknown"][0],
+                                                                self.range_beta["Unknown"][1],
+                                                                3, dtype=np.float64)
+            if self.options_menu[fail_mode].get() == "Other":
+                input_params.beta[fail_mode, 0:3] = np.linspace(self.beta_min[fail_mode].get(),
+                                                                self.beta_max[fail_mode].get(),
+                                                                3, dtype=np.float64)
         # LCC parameters I
-        # Accesibility procedure
+        # Accessibility procedure
         input_params.acc = np.zeros((5, 3, 2), dtype=np.float64)
 
         input_params.acc[0, 1, 0] = self.is_access_roof_replace.get()
@@ -688,13 +743,23 @@ class Root(Tk):
         input_params.co_pen_max = self.co_pen_max.get()
         input_params.night_time = self.night_time.get()
         input_params.ld = self.ld.get()
+
+        # Tab - optional
+        # Effect Matrix
+        input_params.chi_w = np.zeros((self.fail_mode.get(), self.fail_mode.get()), dtype=np.int64)
+
+        for row in range(self.fail_mode.get()):
+            for col in range(self.fail_mode.get()):
+                input_params.chi_w[row, col] = self.fm_matrix[row][col].get()
         return input_params
 
     def check_percentage(self):
         sum_per = self.fm_percentage_1.get() + self.fm_percentage_2.get() + self.fm_percentage_3.get() + \
                   self.fm_percentage_4.get() + self.fm_percentage_5.get()
         if sum_per != 100.0:
-            mbox.showerror('Error', 'Invalid Split in Percentage values')
+            return False
+        else:
+            return True
 
     def enable_range_beta(self, *args):
         val = 0
@@ -879,7 +944,7 @@ class Root(Tk):
         ttk.Label(label_frame_3, text="Beta_max").grid(row=0, column=35,
                                                        sticky=N + E + W + S, pady=(5, 0), padx=(4, 0))
 
-        prediction_interval = ttk.Label(label_frame_3, text="Prediction \nInterval (\u03C4)")
+        prediction_interval = ttk.Label(label_frame_3, text="Prediction \nInterval(Months)")
         prediction_interval.grid(row=0, column=16, columnspan=4, sticky="W", pady=(5, 0))
 
         self.is_hidden = [self.fm_1, self.fm_2, self.fm_3, self.fm_4, self.fm_5]
@@ -1164,6 +1229,8 @@ class Root(Tk):
                 fm_matrix_entry.grid(row=2+mode, column=1+col, sticky="W")
                 self.fm_matrix_widget.append(fm_matrix_entry)
         col = 5
+
+        # changes widget to 5d matrix - useful when trying to disable and enable buttons
         self.fm_matrix_5d = [self.fm_matrix_widget[i:i + col] for i in range(0, len(self.fm_matrix_widget), col)]
 
         # Label Frame

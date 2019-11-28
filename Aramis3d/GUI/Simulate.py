@@ -43,12 +43,13 @@ class Simulate:
         # self.t_fail_h_min = np.zeros((len(self.params.Tst), len(self.params.fr_sens)), dtype=np.float64)
 
     def print_params(self):
-        print("Inside Simualte Clasee", self.params.co_spare_cm, self.params.h_day, self.params.acc[:, 1, 0])
+        print("Inside Simulate Class", self.params.chi_w, self.params.chi_w.shape)
 
         import time
-        time.sleep(10)
-        for i in range(0, 10000):
+        for i in range(0, 10):
             i += 1
+            print(i)
+            time.sleep(1)
 
     def get_w_parameter(self):
         w_parameter = np.zeros((len(self.params.n), np.prod(self.params.n), 2, len(self.params.fr_sens)))
