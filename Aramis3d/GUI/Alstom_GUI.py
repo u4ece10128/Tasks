@@ -1,13 +1,16 @@
 import Simulate
-import queue
 import tkinter
 import numpy as np
-from multiprocessing import Queue, Process
+from multiprocessing import Process
 from tkinter import *
 from tkinter import ttk
 import tkinter.messagebox as mbox
-from RCM import Input_component
 from PIL import Image, ImageTk
+
+
+class InputParams:
+    def __init__(self, component):
+        self.component = component
 
 
 class Root(Tk):
@@ -24,8 +27,8 @@ class Root(Tk):
         # variables
         self.life = IntVar()
         self.h_day = IntVar()
-        self.cmp_fr = IntVar()
-        self.cmp_uf = IntVar()
+        self.cmp_fr = DoubleVar()
+        self.cmp_uf = DoubleVar()
         self.cmp_type = StringVar()
         self.fail_mode = IntVar()
         self.warranty_bool = BooleanVar()
@@ -176,11 +179,11 @@ class Root(Tk):
         self.fm_matrix_widget = []
         self.fm_matrix_5d = []
 
-        self.fm_corrective_1 = BooleanVar()
-        self.fm_corrective_2 = BooleanVar()
-        self.fm_corrective_3 = BooleanVar()
-        self.fm_corrective_4 = BooleanVar()
-        self.fm_corrective_5 = BooleanVar()
+        self.fm_corrective_1 = DoubleVar()
+        self.fm_corrective_2 = DoubleVar()
+        self.fm_corrective_3 = DoubleVar()
+        self.fm_corrective_4 = DoubleVar()
+        self.fm_corrective_5 = DoubleVar()
 
         self.fm_preventive_1 = BooleanVar()
         self.fm_preventive_2 = BooleanVar()
@@ -198,11 +201,11 @@ class Root(Tk):
         self.fm_preventive_entry = []
 
         self.N_sim = IntVar()
-        self.step_size = IntVar()
-        self.fr_sens_min = IntVar()
-        self.fr_sens_max = IntVar()
-        self.Tst_min = IntVar()
-        self.Tst_max = IntVar()
+        self.step_size = DoubleVar()
+        self.fr_sens_min = DoubleVar()
+        self.fr_sens_max = DoubleVar()
+        self.Tst_min = DoubleVar()
+        self.Tst_max = DoubleVar()
 
         self.back_button = None
         self.progressbar = None
@@ -545,7 +548,7 @@ class Root(Tk):
                 mbox.showerror("Error", "Invalid Replacement Cost")
                 return False
         except tkinter.TclError:
-            mbox.showerror("Error", "Invalid Replacement Value")
+            mbox.showerror("Error", "Invalid Replacement Cost")
             return False
 
         try:
@@ -611,6 +614,20 @@ class Root(Tk):
             mbox.showerror("Error", "Invalid Time for Reaching Deposit")
             return False
 
+        # optional Page:
+        # Effect Matrix
+        try:
+            for row in range(self.fail_mode.get()):
+                for col in range(self.fail_mode.get()):
+                    print(self.fm_matrix[row][col].get())
+                    print(self.is_digit(self.fm_matrix[row][col].get()))
+                    if self.fm_matrix[row][col].get() != 0 and self.fm_matrix[row][col].get() != 1:
+                        mbox.showerror("Error", "Invalid Entry in the Effect Matrix \ninput either 0 or 1")
+                        return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Entry in the Effect Matrix")
+            return False
+
     def disable_button(self):
         """
         Disable Entry and Button Widgets - Sheet 2
@@ -646,15 +663,24 @@ class Root(Tk):
         Build Input Parameters object to run the simulation
         :return: Object Instance
         """
-        input_params = Input_component.Parameters(self.set_cmp_name.get())
+        # input_params = Input_component.Parameters(self.set_cmp_name.get())
+        input_params = InputParams(self.set_cmp_name.get())
+        # Color vector for plots according to FR (length equal to fr_sens)
+        input_params.plot_color = ['g', 'b', 'r']
+
+        # Marker vector for plots according to FR (length equal to fr_sens)
+        input_params.plot_marker = ['o', 'x', '*']
+
         # Train Life
         input_params.Life = self.life.get()
         input_params.h_day = self.h_day.get()
         input_params.n_fm = self.fail_mode.get()
-        if self.warranty_bool == 1:
+        if self.warranty_bool.get() == 1:
             input_params.Warranty = self.duration.get()
         else:
             input_params.Warranty = 0
+
+        input_params.plot_percentage = bool(self.plt_percent_bool.get())
 
         # Component Parameters
         # Component is already passed as an initialization parameter
@@ -662,15 +688,28 @@ class Root(Tk):
         input_params.U = self.cmp_uf.get()
 
         # Failure Modes
-        input_params.P_failure_mode = np.zeros((self.fail_mode.get(), 1), dtype=np.float64)
-        input_params.Tau = np.zeros((self.fail_mode.get(), 1), dtype=np.float64)
-        input_params.hidden = np.zeros((self.fail_mode.get(), 1), dtype=np.int64)
-        input_params.beta = np.zeros((self.fail_mode.get(), 3), dtype=np.float64)
+        input_params.n = np.r_[3, 3]
+        input_params.P_failure_mode = np.zeros((input_params.n_fm, 1), dtype=np.float64)
+        input_params.Tau = np.zeros((input_params.n_fm, 1), dtype=np.float64)
+        input_params.hidden = np.zeros((input_params.n_fm, 1), dtype=np.int64)
+        # hard coded to 3 peta values per failure mode
+        input_params.beta = np.zeros((input_params.n_fm, 3), dtype=np.float64)
 
-        for fail_mode in range(0, self.fail_mode.get()):
+        # from optional - Compatibility matrix
+        # PM
+        input_params.Comp = np.zeros((input_params.n_fm, 1), dtype=np.float64)
+        # CM
+        input_params.Comp_cm = np.zeros((input_params.n_fm, 1), dtype=np.float64)
+
+        for fail_mode in range(0, input_params.n_fm):
             input_params.P_failure_mode[fail_mode, 0] = self.percentage_fm[fail_mode].get() / 100.0
             input_params.Tau[fail_mode, 0] = self.prediction_interval_params[fail_mode].get()
             input_params.hidden[fail_mode, 0] = self.is_hidden[fail_mode].get()
+            # PM
+            input_params.Comp[fail_mode, 0] = self.fm_preventive[fail_mode].get()
+            # CM
+            input_params.Comp_cm[fail_mode, 0] = self.fm_corrective[fail_mode].get()
+
             if self.options_menu[fail_mode].get() == "Mechanical":
                 input_params.beta[fail_mode, 0:3] = np.linspace(self.range_beta["Mechanical"][0],
                                                                 self.range_beta["Mechanical"][1],
@@ -746,11 +785,68 @@ class Root(Tk):
 
         # Tab - optional
         # Effect Matrix
-        input_params.chi_w = np.zeros((self.fail_mode.get(), self.fail_mode.get()), dtype=np.int64)
+        input_params.chi_w = np.zeros((input_params.n_fm, input_params.n_fm), dtype=np.int64)
 
-        for row in range(self.fail_mode.get()):
-            for col in range(self.fail_mode.get()):
+        for row in range(input_params.n_fm):
+            for col in range(input_params.n_fm):
                 input_params.chi_w[row, col] = self.fm_matrix[row][col].get()
+
+        # Number of MC simulations
+        input_params.n_sim = self.N_sim.get()
+        # Multiplication Factor FR (sensitivity, in general between 0.5 and 2)
+        input_params.fr_sens = np.r_[self.fr_sens_min.get(), 1, self.fr_sens_max.get()]
+
+        # Proposed preventive interval (y)
+        hidden_list = [0]
+        non_hidden_list = [0]
+        # Proposed test interval (y)
+        for mode in range(input_params.n_fm):
+            if input_params.hidden[mode, 0] == 1:
+                hidden_list.append(input_params.Tau[mode, 0])
+            else:
+                non_hidden_list.append(input_params.Tau[mode, 0])
+
+        print(min(non_hidden_list), input_params.Life, self.step_size.get())
+        input_params.PmT = np.arange(min(non_hidden_list)/12, input_params.Life, self.step_size.get())
+
+        if min(hidden_list)/12 <= self.Tst_min.get():
+            input_params.Tst = np.arange(min(hidden_list)/12, self.Tst_max.get(), self.step_size.get())
+        else:
+            input_params.Tst = np.arange(min(hidden_list)/12, self.Tst_max.get(), self.step_size.get())
+
+        # Conversions
+        input_params.conversion_factor = np.round((365 / 12) * input_params.h_day, decimals=5)
+        input_params.Tau = input_params.Tau * input_params.conversion_factor
+
+        input_params.Life = input_params.Life * 365 * input_params.h_day
+
+        # Calculation of CMT replacement
+        input_params.cmt = np.zeros((2, 1), dtype=np.float64)
+        # Calculation of man-hours and Cost spare/penalty
+        input_params.wkl_cm = np.zeros((2, 1), dtype=np.float64)
+
+        for cmt_id in range(0, 2):
+            dot_prod_1 = np.dot(np.dot(input_params.acc[:, 0, cmt_id], input_params.acc[:, 1, cmt_id]),
+                                input_params.acc[:, 2, cmt_id])
+            dot_prod_2 = np.dot(np.dot(input_params.acc[:, 0, cmt_id], input_params.acc[:, 1, cmt_id]),
+                                1*(input_params.acc[:, 2, cmt_id] == 0))
+            input_params.cmt[cmt_id, 0] = input_params.MTTRc[cmt_id] + dot_prod_1[0] +\
+                                           (dot_prod_2*input_params.n_man_cm)[0]
+            input_params.wkl_cm[cmt_id, 0] = input_params.MTTRc[cmt_id] + (dot_prod_1[0]*input_params.n_man_cm) + \
+                                             (dot_prod_2*input_params.n_man_cm)[0]
+
+        input_params.co_pen = input_params.co_pen_min * 1*((input_params.cmt+input_params.ld) > input_params.night_time)
+        # Total fixed costs CM
+        input_params.Ccor = input_params.co_pen + input_params.co_spare_cm
+        input_params.pmt = input_params.MTTRsc
+        input_params.wkl_pm = input_params.MTTRsc * input_params.n_man_pm
+        input_params.Csc = input_params.co_spare_pm
+
+        input_params.tst = input_params.MTTRts
+        input_params.wkl_ts = input_params.MTTRts * input_params.n_man_ts
+
+        input_params.Tgaranzia = input_params.Warranty * 365 * input_params.h_day
+
         return input_params
 
     def check_percentage(self):
