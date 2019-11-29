@@ -364,21 +364,22 @@ class Root(Tk):
             mbox.showerror("Error", "Invalid Utilization Factor")
             return False
 
-        # Failure Modes
-        if self.check_percentage():
-            pass
-        else:
-            mbox.showerror("Error", "Invalid Percentage Split - Failure Modes")
-            return False
-
         for num_mode in range(self.fail_mode.get()):
             try:
+                print("I am here")
+                print(self.is_digit(self.percentage_fm[num_mode].get()))
                 self.is_digit(self.prediction_interval_params[num_mode].get())
                 if self.options_menu[num_mode].get() == "Other":
                     self.is_digit(self.beta_min[num_mode].get())
                     self.is_digit(self.beta_max[num_mode].get())
+                    if self.beta_min[num_mode].get() <= self.beta_max[num_mode].get():
+                        mbox.showerror("Error", "Invalid Failure Mode Params - Beta Min must be <= Beta Max")
+                        return False
 
-                if self.prediction_interval_params[num_mode].get() < 0 and self.beta_min[num_mode].get() < 0 \
+                if self.prediction_interval_params[num_mode].get() > 360:
+                    mbox.showerror("Error", "Maximum Prediction Interval Length is 360")
+                    return False
+                if self.prediction_interval_params[num_mode].get() <= 0 and self.beta_min[num_mode].get() < 0 \
                         and self.beta_max[num_mode].get() < 0:
                     mbox.showerror("Error", "Invalid Failure Mode Parameters")
                     return False
@@ -389,6 +390,13 @@ class Root(Tk):
             except tkinter.TclError:
                 mbox.showerror("Error", "Invalid Failure Mode Parameters")
                 return False
+
+        # Failure Modes
+        if self.check_percentage():
+            pass
+        else:
+            mbox.showerror("Error", "Invalid Percentage Split - Failure Modes \nSum must be equal to 100")
+            return False
         # LCC - Parameters I
         try:
             self.is_digit(self.time_roof_replace.get())
@@ -628,6 +636,51 @@ class Root(Tk):
             mbox.showerror("Error", "Invalid Entry in the Effect Matrix")
             return False
 
+        # Compatibility Matrix
+        # Corrective Maintenance
+        try:
+            for mode in range(self.fail_mode.get()):
+                self.is_digit(self.fm_corrective[mode].get())
+                self.is_digit(self.fm_preventive[mode].get())
+                # not between 0 - 1
+                if 1 < self.fm_corrective[mode].get() < 0:
+                    mbox.showerror("Error", "Invalid -  Input Positive value between 0 - 1")
+                    return False
+                if self.fm_preventive[mode].get() !=0 and self.fm_preventive[mode].get() != 1:
+                    mbox.showerror("Error", "Invalid -  Input Either 0 or 1")
+                    return
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Entry in Compatibility Matrix")
+            return False
+
+        # Simulation Parameters
+        # Number of Monte Carlo simulation
+        try:
+            self.is_digit(self.N_sim.get())
+            self.is_digit(self.step_size.get())
+            if self.N_sim.get() <= 0:
+                mbox.showerror("Error", "Invalid Simulation Params - Atleast 1 Simulation is Required")
+                return False
+            if self.step_size.get() <= 0:
+                mbox.showerror("Error", "Invalid Simulation Params - Step Size Must Be > 0")
+                return False
+            if self.fr_sens_min.get() < 0 and self.fr_sens_max.get() < 0:
+                mbox.showerror("Error", "Invalid Simulation Params - FR Sensitivity Range")
+                return False
+            if self.fr_sens_min.get() < self.fr_sens_max.get():
+                mbox.showerror("Error", "Invalid Simulation Params - FR Sensitivity Min must be < FR Sensitivity Max")
+                return False
+            if self.Tst_min.get() < 0 and self.Tst_max.get() < 0:
+                mbox.showerror("Error", "Invalid Simulation Params - Proposed Test Interval Range")
+                return False
+            if self.Tst_min.get() < self.Tst_min.get():
+                mbox.showerror("Error", "Invalid Simulation Params - \nProposed Test Interval Min must be < "
+                                        "Proposed Test Interval Max")
+                return False
+        except tkinter.TclError:
+            mbox.showerror("Error", "Invalid Entry -  N. MonteCarlo Simulations")
+            return False
+
     def disable_button(self):
         """
         Disable Entry and Button Widgets - Sheet 2
@@ -689,16 +742,33 @@ class Root(Tk):
 
         # Failure Modes
         input_params.n = np.r_[3, 3]
+
+        # Repartition percentage of the FR on the FMs
+        # Number of rows =n_fm, Vector sum =1
         input_params.P_failure_mode = np.zeros((input_params.n_fm, 1), dtype=np.float64)
+
+        # Predictive interval "as good as new" implemented for the component
+        # rows =n_fm, value in months, value =360 if going to failure
         input_params.Tau = np.zeros((input_params.n_fm, 1), dtype=np.float64)
+
+        # Hidden matrix, it defines which FMs are hidden
+        # rows =n_fm, value =1 if the FM is hidden, value =0 if not
         input_params.hidden = np.zeros((input_params.n_fm, 1), dtype=np.int64)
+
         # hard coded to 3 peta values per failure mode
         input_params.beta = np.zeros((input_params.n_fm, 3), dtype=np.float64)
 
-        # from optional - Compatibility matrix
+
+        # Compatibility matrix� FM/PM
+        # rows =n_fm, value =1 if maintenance interval effective on the FM, value =0 if not
         # PM
         input_params.Comp = np.zeros((input_params.n_fm, 1), dtype=np.float64)
-        # CM
+
+        # rows =n_fm, Values between 0 and 1 and equal to the replacement probability
+        # EXAMPLE: 0.1 shows that in the 10percent of cases it is expected the replacement("as good as new"),
+        # in the 90percent of cases replacement NOT "as good as new")
+        # from optional - Compatibility matrix
+        # Compatibility Matrix FM/CM
         input_params.Comp_cm = np.zeros((input_params.n_fm, 1), dtype=np.float64)
 
         for fail_mode in range(0, input_params.n_fm):
