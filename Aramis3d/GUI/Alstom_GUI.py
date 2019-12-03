@@ -1,12 +1,583 @@
-import Simulate
+import os
+# import Simulate
 import tkinter
 import numpy as np
+import matplotlib.pyplot as plt
 from multiprocessing import Process
 from tkinter import *
 from tkinter import ttk
 import tkinter.messagebox as mbox
 from PIL import Image, ImageTk
 
+
+class ComputeRCM:
+    """
+    Computes, alpha beta parameters
+    Computes total maintenance cost
+    LCC of a component with a test all data must be provided in hours
+    """
+    def __init__(self):
+        self.Weibull_parameter = np.array([], dtype=np.float64)
+
+        self.costsche = None
+        self.fallimenti = None
+        self.maintenancesche = None
+        self.testsche = None
+        self.detected = None
+        self.undetected = None
+        self.tm_und = None
+
+    def alpha_beta_comb(self, alpha, beta, n):
+        l = 1
+        for i in range(0, len(n)):
+            l = n[i] * l
+
+        A = np.ones((len(n), l), dtype=np.float64)
+
+        # # first column as ones
+        A[0:len(n), 0] = 1
+
+        for i in range(1, l):
+            A[0, i] = A[0, i-1] + 1
+            if A[0, i] == n[0] + 1:
+                A[0, i] = 1
+        for j in range(1, len(n)):
+            m = 1
+            for k in range(0, j):
+                m = m * n[k]
+            # (low_thr, high_thr, step_size)
+            for i in range(m, l, m):
+                A[j, i:i+m] = A[j, i-1] + 1
+                if A[j, i] == n[j] + 1:
+                    A[j, i:i+m] = 1
+
+        self.Weibull_parameter = np.zeros((A.shape[0], A.shape[1], 2), dtype=np.float64)
+
+        for i in range(0, len(n)):
+            for j in range(1, n[i]+1):
+                index_alpha = np.where(1*(A[i, :] == j))
+                for index in index_alpha:
+                    self.Weibull_parameter[i, index, 0] = alpha[i, j-1]
+                    self.Weibull_parameter[i, index, 1] = beta[i, j-1]
+
+    def cost_test(self, n, horizon, alpha_w, beta_w, hidden, ccor, cprev, tsched, ttest, warranty, compatibility,
+                  compatibility_cm, co_crew_h, MTTR, time_preventive, time_test, chi_w, depreciation):
+        """
+        Cost test function computes he total cost of maintenance
+        :param n:
+        :param horizon: time at which simulation ends
+        :param alpha_w: vector shape parameter of weibull distribution for n failure modes
+        :param beta_w: vector scale parameter of weibull distribution for n failure modes
+        :param hidden: hidden fault matrix
+        :param ccor: cost of corrective maintenance
+        :param cprev: m dimensional vector cost of preventive maintenance
+        :param tsched: time between consecutive inspections
+        :param ttest:  time between different tests
+        :param warranty: time at which the warranty ends; if(warranty==0), we are not following the warranty policy
+        :param compatibility: n x m matrix with binary entries, where n is the number of failure modes and m
+        the number of possible preventive actions: comptibilty(i,j)=1
+        means that preventive action j restores failure mode i
+        :param compatibility_cm:
+        :param co_crew_h: cost of hour of repair
+        :param MTTR: mean time to repair
+        :param time_preventive: m dimensional vector; m(j) is time to perform the preventive action
+        :param time_test: mean time to repair
+        :param chi_w: parameter indicating the increased risk of failure
+        :param depreciation: Set to 1, depreciation of the component
+        :return: costsche : cost of preventive maintenance
+        :return: failures: Number of failures
+        :return: maintenancesche:
+        :return: testsche:
+        :return: detected:
+        :return: undetected:
+        :return: tm_und
+        """
+        # set depreciation to 1
+        nfailuremode = len(alpha_w)
+
+        # initialize return variables
+        self.costsche = np.zeros((n, 1), dtype=np.float64)
+        self.fallimenti = np.zeros((n, 1), dtype=np.float64)
+        self.maintenancesche = np.zeros((n, 1), dtype=np.float64)
+        self.testsche = np.zeros((n, 1), dtype=np.float64)
+        self.detected = np.zeros((n, 1), dtype=np.float64)
+        self.undetected = np.zeros((n, 1), dtype=np.float64)
+        self.tm_und = np.zeros((n, 1), dtype=np.float64)
+
+        if np.sum(hidden) == 0:
+            ttest = 2*horizon
+
+        for k in range(0, n):
+            print("Num of Monte carlo:", k)
+            t_und = [0, 0]
+            tbreakP = np.zeros((nfailuremode, 1), dtype=np.float64)
+            tstopP = 0
+            tmonitor = tsched
+            tnexttest = ttest
+            thidden = 2 * horizon
+
+            # np.random.weibull(a) ---> Draw samples from a Weibull distribution.
+            # Draw samples from a 1-parameter Weibull distribution with the given shape parameter a.
+            for nf in range(0, nfailuremode):
+                # scale parameter * np.random.weibull(shape_parameter)
+                tbreakP[nf, 0] = alpha_w[nf] * np.random.weibull(beta_w[nf])
+
+            while tstopP < horizon:
+                next_failure = tbreakP.min(0)
+                which_failuremode = np.argmin(tbreakP)
+                # next_maintenance = tmonitor.min(0)
+                next_maintenance = tmonitor
+                which_maintenance = np.argmin(tmonitor)
+                next_test = tnexttest
+                next_event = min([next_failure, next_test, next_maintenance])
+                which_event = np.argmin([next_failure, next_test, next_maintenance])
+                tstopP = next_event
+
+                if tstopP < horizon:
+                    if which_event == 0:
+                        print("FM happens")
+                        if hidden[which_failuremode] == 0:
+                            self.fallimenti[k] = self.fallimenti[k] + 1
+                            if thidden < (2 * horizon):
+                                t_und[0] = t_und[0] + (tstopP - thidden)
+                                t_und[1] = t_und[1] + 1
+                                self.undetected[k] = self.undetected[k] + 1
+                            if np.random.rand() <= compatibility_cm[which_failuremode]:
+                                for nf in range(0, nfailuremode):
+                                    tbreakP[nf, 0] = tstopP + (alpha_w[nf] * np.random.weibull(beta_w[nf]))
+                                if tstopP > warranty:
+                                    self.costsche[k] = self.costsche[k] + (((MTTR[0] * co_crew_h) + ccor[0])
+                                                                           * depreciation **
+                                                                           np.floor(tbreakP[which_maintenance])[0])
+                            else:
+                                gamma = tstopP
+                                tbreakP[which_failuremode, 0] = tstopP + alpha_w[which_failuremode] * \
+                                                                ((gamma/alpha_w[which_failuremode]) **
+                                                                 beta_w[which_failuremode] - np.log(1 - np.random.rand()
+                                                                                                    )) ** \
+                                                                (1/beta_w[which_failuremode]) - gamma
+                                if tstopP > warranty:
+                                    self.costsche[k] = self.costsche[k] + ((MTTR[1] * co_crew_h) + ccor[1]) * \
+                                                   depreciation ** np.floor(tbreakP[which_maintenance])
+                            thidden = 2 * horizon
+                        else:
+                            if thidden == 2 * horizon:
+                                thidden = tstopP
+                                for nf in range(0, nfailuremode):
+                                    if nf != which_failuremode and chi_w[nf, which_failuremode] != 0:
+                                        weibull_sample = 1 / chi_w ** (1 / beta_w[nf]) * alpha_w[nf] * \
+                                                         np.random.weibull(beta_w[nf])
+                                        tbreakP[nf, 0] = min(tbreakP[nf, 0], tstopP + weibull_sample, beta_w[nf])
+                                    else:
+                                        tbreakP[nf, 0] = 2 * horizon
+                            tbreakP[which_failuremode, 0] = 2 * horizon
+                    if which_event == 1:
+                        print("Perform Test")
+                        tnexttest = tnexttest + ttest
+                        if next_test != next_maintenance:
+                            self.costsche[k] = self.costsche[k] + \
+                                               ((time_test * co_crew_h) * depreciation ** np.floor(tstopP))
+                            self.testsche[k] = self.testsche[k] + 1
+                        if thidden < 2 * horizon:
+                            for fn in range(0, nfailuremode):
+                                tbreakP[fn, 0] = tstopP + (alpha_w[fn] * np.random.weibull(beta_w[fn]))
+                            tmonitor = tstopP + tsched
+                            self.fallimenti[k] = self.fallimenti[k] + 1
+                            self.detected[k] = self.detected[k] + 1
+                            t_und[0] = t_und[0] + (tstopP - thidden)
+                            t_und[1] = t_und[1] + 1
+                            if tstopP > warranty:
+                                self.costsche[k] = self.costsche[k] + \
+                                                   ((MTTR[0] * co_crew_h) + ccor[0]) * depreciation ** np.floor(tstopP)
+                            thidden = 2 * horizon
+                            if next_test == next_maintenance:
+                                # tmonitor[which_maintenance, 0] = tstopP + tsched[which_maintenance]
+                                tmonitor = tstopP + tsched
+                    if which_event == 2:
+                        print("Perform PM")
+                        self.costsche[k] = self.costsche[k] + ((time_test * co_crew_h) * depreciation **
+                                                               np.floor(tstopP))
+                        self.testsche[k] = self.testsche[k] + 1
+                        if thidden < 2 * horizon:
+                            for fn_2 in range(0, nfailuremode):
+                                tbreakP[fn_2, 0] = tstopP + (alpha_w[fn_2] * np.random.weibull(beta_w[fn_2]))
+                            tmonitor = tstopP + tsched
+                            self.fallimenti[k] = self.fallimenti[k] + 1
+                            self.detected[k] = self.detected[k] + 1
+                            t_und[0] = t_und[0] + (tstopP - thidden)
+                            t_und[1] = t_und[1] + 1
+
+                            if tstopP > warranty:
+                                self.costsche[k] = self.costsche[k] + (MTTR[0] * co_crew_h + ccor[0]) \
+                                              * depreciation ** np.floor(tstopP)
+                            thidden = 2 * horizon
+                            if next_test == next_maintenance:
+                                if tmonitor == next_maintenance:
+                                    tmonitor = tstopP + tsched
+                                else:
+                                    tmonitor = tstopP
+                        else:
+                            qualiaggiorno = np.where(compatibility[:, which_maintenance] == 1)
+                            for id_q in qualiaggiorno:
+                                tbreakP[id_q, 0] = tstopP + (alpha_w[id_q] * np.random.weibull(beta_w[id_q]))
+                            tmonitor = tstopP + tsched
+                            self.maintenancesche[k] = self.maintenancesche[k] + 1
+                            # time_preventive is a int
+                            self.costsche[k] = self.costsche[k] + ((time_preventive * co_crew_h
+                                                                   + cprev)
+                                                                   * depreciation ** np.floor(tstopP))
+            if thidden < horizon:
+                self.fallimenti[k] = self.fallimenti[k] + 1
+                self.undetected[k] = self.undetected[k] + 1
+                t_und[0] = t_und[0] + (horizon-thidden)
+                t_und[1] = t_und[1] + 1
+            if t_und[1] == 0:
+                self.tm_und[k] = 0
+            else:
+                self.tm_und[k] = t_und[0] / t_und[1]
+
+
+class Simulate:
+    def __init__(self, params):
+        self.params = params
+        self.obj_instance = ComputeRCM()
+        self.w_parameter = self.get_w_parameter()
+
+        self.fall = np.zeros((self.w_parameter.shape[1],
+                             ((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                             len(self.params.fr_sens)),
+                             dtype=np.float64)
+        self.man = np.zeros((self.w_parameter.shape[1],
+                             ((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                             len(self.params.fr_sens)),
+                            dtype=np.float64)
+        self.test = np.zeros((self.w_parameter.shape[1],
+                             ((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                             len(self.params.fr_sens)),
+                             dtype=np.float64)
+        self.det = np.zeros((self.w_parameter.shape[1],
+                             ((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                             len(self.params.fr_sens)),
+                            dtype=np.float64)
+        self.undet = np.zeros((self.w_parameter.shape[1],
+                             ((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                             len(self.params.fr_sens)),
+                            dtype=np.float64)
+        self.t_fail_h = np.zeros((self.w_parameter.shape[1],
+                             ((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                             len(self.params.fr_sens)),
+                            dtype=np.float64)
+        self.costsc = np.zeros((self.w_parameter.shape[1],
+                             ((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                             len(self.params.fr_sens)),
+                            dtype=np.float64)
+
+        self.Costsc_max = np.zeros((((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                                    len(self.params.fr_sens)), dtype=np.float64)
+        # self.Costsc_min = np.zeros((len(self.params.PmT), len(self.params.fr_sens)), dtype=np.float64)
+        self.Costsc_min = np.zeros((((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                                    len(self.params.fr_sens)), dtype=np.float64)
+        self.fall_max = np.zeros((((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                                  len(self.params.fr_sens)), dtype=np.float64)
+        self.fall_min = np.zeros((((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                                  len(self.params.fr_sens)), dtype=np.float64)
+        self.l_size = 2
+
+        self.det_max = np.zeros((((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                                 len(self.params.fr_sens)), dtype=np.float64)
+        self.det_min = np.zeros((((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                                 len(self.params.fr_sens)), dtype=np.float64)
+
+        self.undet_max = np.zeros((((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                                  len(self.params.fr_sens)), dtype=np.float64)
+        self.undet_min = np.zeros((((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                                  len(self.params.fr_sens)), dtype=np.float64)
+        self.t_fail_h_max = np.zeros(((len(self.params.Tst) * len(self.params.PmT)) + len(self.params.PmT),
+                                      len(self.params.fr_sens)), dtype=np.float64)
+        self.t_fail_h_min = np.zeros((((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
+                                     len(self.params.fr_sens)), dtype=np.float64)
+
+    def print_params(self):
+        print(self.params.__dict__)
+
+    def get_w_parameter(self):
+        w_parameter = np.zeros((len(self.params.n), np.prod(self.params.n), 2, len(self.params.fr_sens)))
+        # self.obj_instance = utils.Utils()
+        self.obj_instance = ComputeRCM()
+        for k in range(0, len(self.params.fr_sens)):
+            Fm = self.params.FT * self.params.U * self.params.P_failure_mode * self.params.fr_sens[k]
+            alpha = np.zeros((len(self.params.n), max(self.params.n)))
+            for i in range(0, len(self.params.n)):
+                for j in range(0, self.params.n[i]):
+                    alpha[i, j] = self.params.Tau[i] / ((Fm[i] * self.params.Tau[i]) ** (1 / self.params.beta[i, j]))
+            self.obj_instance.alpha_beta_comb(alpha, self.params.beta, self.params.n)
+            w_parameter[:, :, :, k] = self.obj_instance.Weibull_parameter
+        return w_parameter
+
+    def run_cost_test(self):
+        #  Cycle that turns the motor once for each different combination of Weibull parameters
+        for k in range(0, len(self.params.fr_sens)):
+            for c in range(0, len(self.params.Tst)):
+                t_test = self.params.Tst[c]
+                t_test = t_test * 365 * self.params.h_day
+                # here PmT is an int - 31
+                for p in range(0, self.params.PmT.shape[0]):
+                    tsc = self.params.PmT[p]
+                    tsc = tsc * 365 * self.params.h_day
+                    for l in range(0, self.w_parameter.shape[1]):
+                        self.obj_instance.cost_test(self.params.n_sim,
+                                                    self.params.Life,
+                                                    self.w_parameter[:, l, 0, k],
+                                                    self.w_parameter[:, l, 1, k],
+                                                    self.params.hidden,
+                                                    self.params.Ccor,
+                                                    self.params.Csc,
+                                                    tsc,
+                                                    t_test,
+                                                    self.params.Tgaranzia,
+                                                    self.params.Comp,
+                                                    self.params.Comp_cm,
+                                                    self.params.co_crew_h,
+                                                    self.params.wkl_cm,
+                                                    self.params.wkl_pm,
+                                                    self.params.wkl_ts,
+                                                    self.params.chi_w,
+                                                    1)
+
+                    # Calculation of average values ​​on the lives and on the different combinations of parameters
+                    self.fall[:, c * (self.params.PmT.shape[0]-1) + p, k] = np.mean(self.get_fallimenti())
+                    self.man[:, c * (self.params.PmT.shape[0]-1) + p, k] = np.mean(self.get_maintenancesche())
+                    self.test[:, c * self.params.PmT.shape[0] + p, k] = np.mean(self.get_testsche())
+                    self.det[:, c * self.params.PmT.shape[0] + p, k] = np.mean(self.get_detected())
+                    self.undet[:, c * self.params.PmT.shape[0] + p, k] = np.mean(self.get_undetected())
+                    self.t_fail_h[:, c * self.params.PmT.shape[0] + p, k] = np.mean(self.get_tm_und())
+                    self.costsc[:, c * self.params.PmT.shape[0] + p,  k] = np.mean(self.get_costsche())
+
+    def get_costsche(self):
+        return self.obj_instance.costsche
+
+    def get_fallimenti(self):
+        return self.obj_instance.fallimenti
+
+    def get_maintenancesche(self):
+        return self.obj_instance.maintenancesche
+
+    def get_testsche(self):
+        return self.obj_instance.testsche
+
+    def get_detected(self):
+        return self.obj_instance.detected
+
+    def get_undetected(self):
+        return self.obj_instance.undetected
+
+    def get_tm_und(self):
+        return self.obj_instance.tm_und
+
+    def get_fall(self):
+        return self.fall
+
+    def get_man(self):
+        return self.man
+
+    def get_test(self):
+        return self.test
+
+    def get_det(self):
+        return self.det
+
+    def get_undet(self):
+        return self.get_undet
+
+    def get_t_fail_h(self):
+        return self.t_fail_h
+
+    def get_costsc(self):
+        return self.costsc
+
+    def plot_results(self):
+        self.plot_mandatory_results()
+        self.plot_is_hidden_results()
+
+    def plot_mandatory_results(self):
+        """
+        Graph 1 - costs with varying PM intervals - the maximum value (continuous line)
+        and minimum (dotted line) on the various beta / alpha are plotted for each FR
+        :return:
+        """
+        self.Costsc_max[:, :] = self.costsc.max(0)
+        self.Costsc_min[:, :] = self.costsc.min(0)
+
+        if not os.path.isdir(self.params.component):
+            os.system('mkdir ' + self.params.component)
+
+        x_time = np.zeros((1, self.params.Tst.shape[0]), dtype=np.int64)
+
+        if len(self.params.Tst) > 1:
+            x_time[0, :] = self.params.Tst
+
+        # Turn ON grid
+        plt.figure(0)
+        plt.grid(True)
+
+        for i in range(0, self.Costsc_max.shape[1]):
+            plt.plot(x_time, self.Costsc_max[:, i].reshape(1, self.Costsc_max.shape[0]),
+                     linestyle='-', marker=self.params.plot_marker[i],
+                     color=self.params.plot_color[i], linewidth=self.l_size)
+
+        for i in range(0, self.Costsc_min.shape[1]):
+            plt.plot(x_time, self.Costsc_min[:, i].reshape(1, self.Costsc_min.shape[0]),
+                     linestyle='--', marker=self.params.plot_marker[i],
+                     color=self.params.plot_color[i], linewidth=self.l_size)
+
+        fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
+        plt.title("Cost vs. FR")
+        plt.legend(fr_legend, loc="upper right")
+        plt.xlabel("PM interval [years]")
+        plt.ylabel("Total maintenance cost")
+        plt.savefig(self.params.component + '/' + self.params.component + "_Cost_Ext.png")
+        plt.show(block=False)
+
+        """
+        costs according to lambda values ​​-
+        The base case cost, corrective maintenance and best preventive are plotted for each lambda
+        :return:
+        """
+        plt.figure(1)
+        plt.grid(True)
+
+        for i in range(0, self.Costsc_max.shape[1]):
+            plt.plot([self.params.fr_sens[i], self.params.fr_sens[i]], [self.Costsc_min[0, i], self.Costsc_max[-1, i]],
+                     linestyle='-', linewidth=self.l_size, color='black')
+
+        plt.plot(self.params.fr_sens, self.Costsc_min[0, :], marker='o', color='g', linestyle='None',
+                 ms=8, markerfacecolor='g', label="Base Case")
+        plt.plot(self.params.fr_sens, self.Costsc_max[-1, :], marker='o', color='r', linestyle='None', ms=8,
+                 markerfacecolor='r', label="Corrective")
+        plt.plot(self.params.fr_sens, self.Costsc_max[1:self.Costsc_max.shape[0]-1, :].min(0), marker='o',
+                 linestyle='None', color='blue', ms=8, markerfacecolor='blue', label="Best Preventive")
+
+        plt.title("Cost vs. FR")
+        plt.legend(loc="best")
+        plt.xlabel("Relative Lambda")
+        plt.ylabel("Total maintenance cost")
+        plt.savefig(self.params.component + '/' + self.params.component + "_Cost_Scheme.png")
+        plt.show(block=False)
+
+        """
+        ENF when PM intervals vary -
+        The maximum value of ENF on the various beta / alpha is plotted for each FR
+        :return:
+        """
+
+        self.fall_max[:, :] = self.fall.max(0)
+        self.fall_min[:, :] = self.fall.min(0)
+
+        plt.figure(2)
+        plt.grid(True)
+
+        x_time = np.zeros((1, self.params.Tst.shape[0]), dtype=np.int64)
+
+        if len(self.params.Tst) > 1:
+            x_time[0, :] = self.params.Tst
+
+        for i in range(0, self.fall_max.shape[1]):
+            plt.plot(x_time, self.fall_max[:, i].reshape(1, self.fall_max.shape[0]), linestyle='-',
+                     marker=self.params.plot_marker[i],
+                     color=self.params.plot_color[i], linewidth=self.l_size)
+
+        fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
+        plt.title("ENF vs. FR")
+        plt.legend(fr_legend, loc="upper right")
+        plt.xlabel("PM interval [years]")
+        plt.ylabel("N. expected failures")
+        plt.savefig(self.params.component + '/' + self.params.component + "_Failures.png")
+        # if np.sum(self.params.hidden) > 0:
+        #     plt.show(block=False)
+        # else:
+        #     plt.show()
+
+        plt.show()
+
+    # def plot_is_hidden_results(self):
+    #     if np.sum(self.params.hidden) > 0:
+    #         self.det_max[:, :] = self.det.max(0)
+    #         self.det_min[:, :] = self.det.min(0)
+    #         self.undet_max[:, :] = self.undet.max(0)
+    #         self.undet_min[:, :] = self.undet.min(0)
+    #
+    #         self.t_fail_h_max[:, :] = (self.t_fail_h/24.0).max(0)
+    #         self.t_fail_h_min[:, :] = (self.t_fail_h/24.0).min(0)
+    #
+    #         """
+    #         Failures detected by the test when the PM or Test intervals vary -
+    #         The maximum value of DF on the various beta / alpha is plotted for each FR
+    #         :return:
+    #         """
+    #         plt.figure(4)
+    #         plt.grid(True)
+    #
+    #         x_time = 0
+    #
+    #         if len(self.params.Tst) > 1:
+    #             x_time = self.params.Tst
+    #
+    #         for i in range(0, self.det_max.shape[1]):
+    #             plt.plot(x_time, self.det_max[:, i], linestyle='-',
+    #                      marker=self.params.plot_marker[i], color=self.params.plot_color[i], linewidth=self.l_size)
+    #
+    #         fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
+    #         plt.title("Detected Failures vs. FR")
+    #         plt.legend(fr_legend, loc="best")
+    #         plt.xlabel("PM interval [years]")
+    #         plt.ylabel("N. expected failures")
+    #         plt.savefig(self.params.component + '/' + self.params.component + "_Det_Failures_Ext.png")
+    #         plt.show(block=False)
+    #
+    #         """
+    #         Failures not detected by the test when the PM or Test intervals vary
+    #         The maximum NDF value on the various beta / alpha is plotted for each FR
+    #         :return:
+    #         """
+    #         plt.figure(5)
+    #         plt.grid(True)
+    #
+    #         x_time = 0
+    #
+    #         if len(self.params.Tst) > 1:
+    #             x_time = self.params.Tst
+    #
+    #         for i in range(0, self.undet_max.shape[1]):
+    #             plt.plot(x_time, self.undet_max[:, i], linestyle='-',
+    #                      marker=self.params.plot_marker[i], color=self.params.plot_color[i], linewidth=self.l_size)
+    #
+    #         fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
+    #         plt.title("UnDetected Failures vs. FR")
+    #         plt.legend(fr_legend, loc="best")
+    #         plt.xlabel("PM interval [years]")
+    #         plt.ylabel("N. expected failures")
+    #         plt.savefig(self.params.component + '/' + self.params.component + "_Undet_Failures_Ext.png")
+    #         plt.show(block=False)
+    #
+    #         """
+    #         Average time for which a faulty component with an FM hidden remains faulty before being adjusted / detected
+    #         The maximum value Time for the various beta / alpha is plotted for each FR
+    #         :return:
+    #         """
+    #         plt.figure(6)
+    #         plt.grid(True)
+    #
+    #         for i in range(0, self.t_fail_h_max.shape[1]):
+    #             plt.plot(x_time, self.t_fail_h_max[:, i], linestyle='-',
+    #                      marker=self.params.plot_marker[i], color=self.params.plot_color[i], linewidth=self.l_size)
+    #
+    #         fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
+    #         plt.title("Undetected Time vs. FR")
+    #         plt.legend(fr_legend, loc="best")
+    #         plt.xlabel("PM interval [years]")
+    #         plt.ylabel("Time [days]")
+    #         plt.savefig(self.params.component + '/' + self.params.component + "_Time_Failures_Ext.png")
+    #         plt.show()
 
 class InputParams:
     def __init__(self, component):
@@ -237,8 +808,10 @@ class Root(Tk):
 
     def simulate_test(self):
         params = self.load_input_params()
-        simulate = Simulate.Simulate(params)
+        simulate = Simulate(params)
         simulate.print_params()
+        simulate.run_cost_test()
+        simulate.plot_mandatory_results()
 
     def start_process(self):
         t1 = Process(target=self.simulate_test)
@@ -251,10 +824,7 @@ class Root(Tk):
             self.disable_button()
             self.progressbar.start()
             p = self.start_process()
-            # self.queue = Queue()
-            # self.t1 = ThreadedTask(self.queue, params=self.load_input_params())
             p.start()
-            print(p)
             self.after(100, self.process)
 
     def process(self):
@@ -262,10 +832,8 @@ class Root(Tk):
             self.after(100, self.process)
         else:
             p.terminate()
-            print("Process Finished")
             self.progressbar.stop()
             self.enable_button()
-            print(p, p.is_alive)
 
     def stop_rcm(self):
         mbox.showinfo("Info", "RCM Analysis Stopped")
@@ -325,9 +893,7 @@ class Root(Tk):
                 return False
 
         if self.warranty_bool.get() == 1:
-            print("I am Here")
             try:
-                print(self.duration.get())
                 self.is_digit(self.duration.get())
                 if self.duration.get() <= 0:
                     mbox.showerror("Error", "Invalid Warranty Period")
@@ -339,7 +905,6 @@ class Root(Tk):
         # Component Parameters
 
         if not self.is_alpha(self.set_cmp_name.get()):
-            print(type(self.set_cmp_name.get()))
             if len(self.set_cmp_name.get()) == 0:
                 mbox.showerror("Error", "Invalid Component Field")
                 return False
@@ -366,18 +931,15 @@ class Root(Tk):
 
         for num_mode in range(self.fail_mode.get()):
             try:
-                print("I am here")
-                print(self.is_digit(self.percentage_fm[num_mode].get()))
                 self.is_digit(self.prediction_interval_params[num_mode].get())
                 if self.options_menu[num_mode].get() == "Other":
                     self.is_digit(self.beta_min[num_mode].get())
                     self.is_digit(self.beta_max[num_mode].get())
-                    if self.beta_min[num_mode].get() <= self.beta_max[num_mode].get():
+                    if self.beta_min[num_mode].get() > self.beta_max[num_mode].get():
                         mbox.showerror("Error", "Invalid Failure Mode Params - Beta Min must be <= Beta Max")
                         return False
-
                 if self.prediction_interval_params[num_mode].get() > 360:
-                    mbox.showerror("Error", "Maximum Prediction Interval Length is 360")
+                    mbox.showerror("Error", "Invalid - Maximum Allowable Prediction Interval Length is 360")
                     return False
                 if self.prediction_interval_params[num_mode].get() <= 0 and self.beta_min[num_mode].get() < 0 \
                         and self.beta_max[num_mode].get() < 0:
@@ -386,7 +948,6 @@ class Root(Tk):
                 if self.options_menu[num_mode].get() == "Select Type":
                     mbox.showerror("Error", "Invalid Type of Failure Mode")
                     return False
-
             except tkinter.TclError:
                 mbox.showerror("Error", "Invalid Failure Mode Parameters")
                 return False
@@ -627,8 +1188,6 @@ class Root(Tk):
         try:
             for row in range(self.fail_mode.get()):
                 for col in range(self.fail_mode.get()):
-                    print(self.fm_matrix[row][col].get())
-                    print(self.is_digit(self.fm_matrix[row][col].get()))
                     if self.fm_matrix[row][col].get() != 0 and self.fm_matrix[row][col].get() != 1:
                         mbox.showerror("Error", "Invalid Entry in the Effect Matrix \ninput either 0 or 1")
                         return False
@@ -667,13 +1226,13 @@ class Root(Tk):
             if self.fr_sens_min.get() < 0 and self.fr_sens_max.get() < 0:
                 mbox.showerror("Error", "Invalid Simulation Params - FR Sensitivity Range")
                 return False
-            if self.fr_sens_min.get() < self.fr_sens_max.get():
+            if self.fr_sens_min.get() > self.fr_sens_max.get():
                 mbox.showerror("Error", "Invalid Simulation Params - FR Sensitivity Min must be < FR Sensitivity Max")
                 return False
             if self.Tst_min.get() < 0 and self.Tst_max.get() < 0:
                 mbox.showerror("Error", "Invalid Simulation Params - Proposed Test Interval Range")
                 return False
-            if self.Tst_min.get() < self.Tst_min.get():
+            if self.Tst_min.get() > self.Tst_min.get():
                 mbox.showerror("Error", "Invalid Simulation Params - \nProposed Test Interval Min must be < "
                                         "Proposed Test Interval Max")
                 return False
@@ -749,7 +1308,7 @@ class Root(Tk):
 
         # Predictive interval "as good as new" implemented for the component
         # rows =n_fm, value in months, value =360 if going to failure
-        input_params.Tau = np.zeros((input_params.n_fm, 1), dtype=np.float64)
+        input_params.Tau = np.zeros((input_params.n_fm, 1), dtype=np.int64)
 
         # Hidden matrix, it defines which FMs are hidden
         # rows =n_fm, value =1 if the FM is hidden, value =0 if not
@@ -757,7 +1316,6 @@ class Root(Tk):
 
         # hard coded to 3 peta values per failure mode
         input_params.beta = np.zeros((input_params.n_fm, 3), dtype=np.float64)
-
 
         # Compatibility matrix� FM/PM
         # rows =n_fm, value =1 if maintenance interval effective on the FM, value =0 if not
@@ -867,8 +1425,8 @@ class Root(Tk):
         input_params.fr_sens = np.r_[self.fr_sens_min.get(), 1, self.fr_sens_max.get()]
 
         # Proposed preventive interval (y)
-        hidden_list = [0]
-        non_hidden_list = [0]
+        hidden_list = []
+        non_hidden_list = []
         # Proposed test interval (y)
         for mode in range(input_params.n_fm):
             if input_params.hidden[mode, 0] == 1:
@@ -876,13 +1434,18 @@ class Root(Tk):
             else:
                 non_hidden_list.append(input_params.Tau[mode, 0])
 
-        print(min(non_hidden_list), input_params.Life, self.step_size.get())
-        input_params.PmT = np.arange(min(non_hidden_list)/12, input_params.Life, self.step_size.get())
+        print(hidden_list)
+        print(non_hidden_list)
+        # minimum of non hidden failure mode prediction interval
+        if len(non_hidden_list) != 0:
+            input_params.PmT = np.arange(min(non_hidden_list)/12, input_params.Life, self.step_size.get())
 
-        if min(hidden_list)/12 <= self.Tst_min.get():
-            input_params.Tst = np.arange(min(hidden_list)/12, self.Tst_max.get(), self.step_size.get())
-        else:
-            input_params.Tst = np.arange(min(hidden_list)/12, self.Tst_max.get(), self.step_size.get())
+        # minimum of minimum prediction interval and Min Proposed Tst interval
+        if len(hidden_list) != 0:
+            if min(hidden_list)/12 <= self.Tst_min.get():
+                input_params.Tst = np.arange(min(hidden_list)/12, self.Tst_max.get(), self.step_size.get())
+            else:
+                input_params.Tst = np.arange(self.Tst_min.get(), self.Tst_max.get(), self.step_size.get())
 
         # Conversions
         input_params.conversion_factor = np.round((365 / 12) * input_params.h_day, decimals=5)
@@ -998,8 +1561,6 @@ class Root(Tk):
                 for k in range(0, 5):
                     self.fm_matrix_5d[k][j].config(state=DISABLED)
                     self.fm_matrix[j][k].set(0)
-
-        print(self.night_time)
 
     @staticmethod
     def add_logo(tab):
