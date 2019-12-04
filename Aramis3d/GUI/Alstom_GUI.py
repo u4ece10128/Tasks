@@ -28,6 +28,12 @@ class ComputeRCM:
         self.tm_und = None
 
     def alpha_beta_comb(self, alpha, beta, n):
+        """
+        :param alpha: Scale Parameter <type: np.float64>
+        :param beta: Shape Parameter <type: np.float64>
+        :param n: Number of Monte carlo Simulations <type: int>
+        :return: Weibull parameter
+        """
         l = 1
         for i in range(0, len(n)):
             l = n[i] * l
@@ -292,7 +298,7 @@ class Simulate:
                                   len(self.params.fr_sens)), dtype=np.float64)
         self.undet_min = np.zeros((((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
                                   len(self.params.fr_sens)), dtype=np.float64)
-        self.t_fail_h_max = np.zeros(((len(self.params.Tst) * len(self.params.PmT)) + len(self.params.PmT),
+        self.t_fail_h_max = np.zeros((((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
                                       len(self.params.fr_sens)), dtype=np.float64)
         self.t_fail_h_min = np.zeros((((len(self.params.Tst)-1) * len(self.params.PmT)) + len(self.params.PmT),
                                      len(self.params.fr_sens)), dtype=np.float64)
@@ -405,45 +411,84 @@ class Simulate:
         and minimum (dotted line) on the various beta / alpha are plotted for each FR
         :return:
         """
+        cost_tst_max = np.zeros((self.params.Tst.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+        cost_tst_min = np.zeros((self.params.Tst.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+        cost_pmt_max = np.zeros((self.params.PmT.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+        cost_pmt_min = np.zeros((self.params.PmT.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+
         self.Costsc_max[:, :] = self.costsc.max(0)
         self.Costsc_min[:, :] = self.costsc.min(0)
 
         if not os.path.isdir(self.params.component):
             os.system('mkdir ' + self.params.component)
 
-        x_time = np.zeros((1, self.params.Tst.shape[0]), dtype=np.int64)
+        x_time = np.zeros((self.params.Tst.shape[0]), dtype=np.int64)
 
         if len(self.params.Tst) > 1:
-            x_time[0, :] = self.params.Tst
+            x_time[:] = self.params.Tst
+
+        for tst_sample in range(0, self.params.Tst.shape[0]):
+            temp_max = self.Costsc_max[self.params.Tst.shape[0] * tst_sample:self.params.PmT.shape[0] * tst_sample +
+                                       self.params.PmT.shape[0] - 1, :]
+            temp_min = self.Costsc_min[self.params.Tst.shape[0] * tst_sample:self.params.PmT.shape[0] * tst_sample +
+                                       self.params.PmT.shape[0] - 1, :]
+            cost_tst_max[tst_sample, :] = temp_max.max(0)
+            cost_tst_min[tst_sample, :] = temp_min.min(0)
+
+        for pmt_sample in range(0, self.params.PmT.shape[0]):
+            a = np.arange(pmt_sample, self.Costsc_max.shape[0], len(self.params.PmT))
+            temp_max = self.Costsc_max[a, :]
+            temp_min = self.Costsc_min[a, :]
+            cost_pmt_max[pmt_sample, :] = temp_max.max(0)
+            cost_pmt_min[pmt_sample, :] = temp_min.min(0)
 
         # Turn ON grid
         plt.figure(0)
         plt.grid(True)
+        for i in range(0, cost_tst_max.shape[1]):
+            plt.plot(x_time, cost_tst_max[:, i], linestyle='-', marker=self.params.plot_marker[i],
+                     color=self.params.plot_color[i], linewidth=2)
+        for i in range(0, cost_tst_min.shape[1]):
+            plt.plot(x_time, cost_tst_min[:, i], linestyle='--', marker=self.params.plot_marker[i],
+                     color=self.params.plot_color[i], linewidth=2)
 
-        for i in range(0, self.Costsc_max.shape[1]):
-            plt.plot(x_time, self.Costsc_max[:, i].reshape(1, self.Costsc_max.shape[0]),
-                     linestyle='-', marker=self.params.plot_marker[i],
-                     color=self.params.plot_color[i], linewidth=self.l_size)
+        fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
+        plt.title("Cost vs. FR")
+        plt.legend(fr_legend, loc="upper right")
+        plt.xlabel("Test interval [years]")
+        plt.ylabel("Total maintenance cost")
+        plt.savefig(self.params.component + '/' + self.params.component + "_Cost_TsT.png")
+        # plt.show(block=False)
 
-        for i in range(0, self.Costsc_min.shape[1]):
-            plt.plot(x_time, self.Costsc_min[:, i].reshape(1, self.Costsc_min.shape[0]),
-                     linestyle='--', marker=self.params.plot_marker[i],
-                     color=self.params.plot_color[i], linewidth=self.l_size)
+        plt.figure(1)
+        plt.grid(True)
+
+        x_time = np.zeros((self.params.PmT.shape[0]), dtype=np.int64)
+        if len(self.params.PmT) > 1:
+            x_time[:] = self.params.PmT
+
+        for i in range(0, cost_pmt_max.shape[1]):
+            plt.plot(x_time, cost_pmt_max[:, i], linestyle='-', marker=self.params.plot_marker[i],
+                     color=self.params.plot_color[i], linewidth=2)
+
+        for i in range(0, cost_pmt_min.shape[1]):
+            plt.plot(x_time, cost_pmt_min[:, i], linestyle='--', marker=self.params.plot_marker[i],
+                     color=self.params.plot_color[i], linewidth=2)
 
         fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
         plt.title("Cost vs. FR")
         plt.legend(fr_legend, loc="upper right")
         plt.xlabel("PM interval [years]")
         plt.ylabel("Total maintenance cost")
-        plt.savefig(self.params.component + '/' + self.params.component + "_Cost_Ext.png")
-        plt.show(block=False)
+        plt.savefig(self.params.component + '/' + self.params.component + "_Cost_PmT.png")
+        # plt.show(block=False)
 
         """
         costs according to lambda values ​​-
         The base case cost, corrective maintenance and best preventive are plotted for each lambda
         :return:
         """
-        plt.figure(1)
+        plt.figure(2)
         plt.grid(True)
 
         for i in range(0, self.Costsc_max.shape[1]):
@@ -454,7 +499,7 @@ class Simulate:
                  ms=8, markerfacecolor='g', label="Base Case")
         plt.plot(self.params.fr_sens, self.Costsc_max[-1, :], marker='o', color='r', linestyle='None', ms=8,
                  markerfacecolor='r', label="Corrective")
-        plt.plot(self.params.fr_sens, self.Costsc_max[1:self.Costsc_max.shape[0]-1, :].min(0), marker='o',
+        plt.plot(self.params.fr_sens, self.Costsc_max[1:self.Costsc_max.shape[0] - 1, :].min(0), marker='o',
                  linestyle='None', color='blue', ms=8, markerfacecolor='blue', label="Best Preventive")
 
         plt.title("Cost vs. FR")
@@ -462,122 +507,299 @@ class Simulate:
         plt.xlabel("Relative Lambda")
         plt.ylabel("Total maintenance cost")
         plt.savefig(self.params.component + '/' + self.params.component + "_Cost_Scheme.png")
-        plt.show(block=False)
+        # plt.show(block=False)
 
         """
         ENF when PM intervals vary -
         The maximum value of ENF on the various beta / alpha is plotted for each FR
         :return:
         """
+        fall_tst_max = np.zeros((self.params.Tst.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+        fall_tst_min = np.zeros((self.params.Tst.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+        fall_pmt_max = np.zeros((self.params.PmT.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+        fall_pmt_min = np.zeros((self.params.PmT.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
 
         self.fall_max[:, :] = self.fall.max(0)
         self.fall_min[:, :] = self.fall.min(0)
 
-        plt.figure(2)
-        plt.grid(True)
-
-        x_time = np.zeros((1, self.params.Tst.shape[0]), dtype=np.int64)
+        x_time = np.zeros((self.params.Tst.shape[0]), dtype=np.int64)
 
         if len(self.params.Tst) > 1:
-            x_time[0, :] = self.params.Tst
+            x_time[:] = self.params.Tst
 
-        for i in range(0, self.fall_max.shape[1]):
-            plt.plot(x_time, self.fall_max[:, i].reshape(1, self.fall_max.shape[0]), linestyle='-',
-                     marker=self.params.plot_marker[i],
-                     color=self.params.plot_color[i], linewidth=self.l_size)
+        for tst_sample in range(0, self.params.Tst.shape[0]):
+            temp_max = self.fall_max[self.params.Tst.shape[0] * tst_sample:self.params.PmT.shape[0] * tst_sample +
+                                     self.params.PmT.shape[0] - 1, :]
+            temp_min = self.fall_min[self.params.Tst.shape[0] * tst_sample:self.params.PmT.shape[0] * tst_sample +
+                                     self.params.PmT.shape[0] - 1, :]
+            fall_tst_max[tst_sample, :] = temp_max.max(0)
+            fall_tst_min[tst_sample, :] = temp_min.min(0)
+
+        for pmt_sample in range(0, self.params.PmT.shape[0]):
+            a = np.arange(pmt_sample, self.Costsc_max.shape[0], len(self.params.PmT))
+            temp_max = self.fall_max[a, :]
+            temp_min = self.fall_min[a, :]
+            fall_pmt_max[pmt_sample, :] = temp_max.max(0)
+            fall_pmt_min[pmt_sample, :] = temp_min.min(0)
+
+        plt.figure(3)
+        plt.grid(True)
+        # Turn ON grid
+        for i in range(0, fall_tst_max.shape[1]):
+            plt.plot(x_time, fall_tst_max[:, i], linestyle='-', marker=self.params.plot_marker[i],
+                     color=self.params.plot_color[i], linewidth=2)
+        for i in range(0, fall_tst_min.shape[1]):
+            plt.plot(x_time, fall_tst_min[:, i], linestyle='--', marker=self.params.plot_marker[i],
+                     color=self.params.plot_color[i], linewidth=2)
+
+        fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
+        plt.title("ENF vs. FR")
+        plt.legend(fr_legend, loc="upper right")
+        plt.xlabel("Test interval [years]")
+        plt.ylabel("N. expected failures")
+        plt.savefig(self.params.component + '/' + self.params.component + "_TsT_Failures.png")
+        # plt.show(block=False)
+
+        plt.figure(4)
+        plt.grid(True)
+        x_time = np.zeros((self.params.PmT.shape[0]), dtype=np.int64)
+
+        if len(self.params.PmT) > 1:
+            x_time[:] = self.params.PmT
+
+        for i in range(0, fall_pmt_max.shape[1]):
+            plt.plot(x_time, fall_pmt_max[:, i], linestyle='-', marker=self.params.plot_marker[i],
+                     color=self.params.plot_color[i], linewidth=2)
+        for i in range(0, fall_pmt_min.shape[1]):
+            plt.plot(x_time, fall_pmt_min[:, i], linestyle='--', marker=self.params.plot_marker[i],
+                     color=self.params.plot_color[i], linewidth=2)
 
         fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
         plt.title("ENF vs. FR")
         plt.legend(fr_legend, loc="upper right")
         plt.xlabel("PM interval [years]")
         plt.ylabel("N. expected failures")
-        plt.savefig(self.params.component + '/' + self.params.component + "_Failures.png")
-        # if np.sum(self.params.hidden) > 0:
-        #     plt.show(block=False)
-        # else:
-        #     plt.show()
+        plt.savefig(self.params.component + '/' + self.params.component + "_PmT_Failures.png")
+        # plt.show()
 
-        plt.show()
+    def plot_is_hidden_results(self):
+        if np.sum(self.params.hidden) > 0:
+            det_tst_max = np.zeros((self.params.Tst.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+            det_tst_min = np.zeros((self.params.Tst.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+            det_pmt_max = np.zeros((self.params.PmT.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+            det_pmt_min = np.zeros((self.params.PmT.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
 
-    # def plot_is_hidden_results(self):
-    #     if np.sum(self.params.hidden) > 0:
-    #         self.det_max[:, :] = self.det.max(0)
-    #         self.det_min[:, :] = self.det.min(0)
-    #         self.undet_max[:, :] = self.undet.max(0)
-    #         self.undet_min[:, :] = self.undet.min(0)
-    #
-    #         self.t_fail_h_max[:, :] = (self.t_fail_h/24.0).max(0)
-    #         self.t_fail_h_min[:, :] = (self.t_fail_h/24.0).min(0)
-    #
-    #         """
-    #         Failures detected by the test when the PM or Test intervals vary -
-    #         The maximum value of DF on the various beta / alpha is plotted for each FR
-    #         :return:
-    #         """
-    #         plt.figure(4)
-    #         plt.grid(True)
-    #
-    #         x_time = 0
-    #
-    #         if len(self.params.Tst) > 1:
-    #             x_time = self.params.Tst
-    #
-    #         for i in range(0, self.det_max.shape[1]):
-    #             plt.plot(x_time, self.det_max[:, i], linestyle='-',
-    #                      marker=self.params.plot_marker[i], color=self.params.plot_color[i], linewidth=self.l_size)
-    #
-    #         fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
-    #         plt.title("Detected Failures vs. FR")
-    #         plt.legend(fr_legend, loc="best")
-    #         plt.xlabel("PM interval [years]")
-    #         plt.ylabel("N. expected failures")
-    #         plt.savefig(self.params.component + '/' + self.params.component + "_Det_Failures_Ext.png")
-    #         plt.show(block=False)
-    #
-    #         """
-    #         Failures not detected by the test when the PM or Test intervals vary
-    #         The maximum NDF value on the various beta / alpha is plotted for each FR
-    #         :return:
-    #         """
-    #         plt.figure(5)
-    #         plt.grid(True)
-    #
-    #         x_time = 0
-    #
-    #         if len(self.params.Tst) > 1:
-    #             x_time = self.params.Tst
-    #
-    #         for i in range(0, self.undet_max.shape[1]):
-    #             plt.plot(x_time, self.undet_max[:, i], linestyle='-',
-    #                      marker=self.params.plot_marker[i], color=self.params.plot_color[i], linewidth=self.l_size)
-    #
-    #         fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
-    #         plt.title("UnDetected Failures vs. FR")
-    #         plt.legend(fr_legend, loc="best")
-    #         plt.xlabel("PM interval [years]")
-    #         plt.ylabel("N. expected failures")
-    #         plt.savefig(self.params.component + '/' + self.params.component + "_Undet_Failures_Ext.png")
-    #         plt.show(block=False)
-    #
-    #         """
-    #         Average time for which a faulty component with an FM hidden remains faulty before being adjusted / detected
-    #         The maximum value Time for the various beta / alpha is plotted for each FR
-    #         :return:
-    #         """
-    #         plt.figure(6)
-    #         plt.grid(True)
-    #
-    #         for i in range(0, self.t_fail_h_max.shape[1]):
-    #             plt.plot(x_time, self.t_fail_h_max[:, i], linestyle='-',
-    #                      marker=self.params.plot_marker[i], color=self.params.plot_color[i], linewidth=self.l_size)
-    #
-    #         fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
-    #         plt.title("Undetected Time vs. FR")
-    #         plt.legend(fr_legend, loc="best")
-    #         plt.xlabel("PM interval [years]")
-    #         plt.ylabel("Time [days]")
-    #         plt.savefig(self.params.component + '/' + self.params.component + "_Time_Failures_Ext.png")
-    #         plt.show()
+            self.det_max[:, :] = self.det.max(0)
+            self.det_min[:, :] = self.det.min(0)
+
+            undet_tst_max = np.zeros((self.params.Tst.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+            undet_tst_min = np.zeros((self.params.Tst.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+            undet_pmt_max = np.zeros((self.params.PmT.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+            undet_pmt_min = np.zeros((self.params.PmT.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+
+            self.undet_max[:, :] = self.undet.max(0)
+            self.undet_min[:, :] = self.undet.min(0)
+
+            t_fail_h_tst_max = np.zeros((self.params.Tst.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+            t_fail_h_tst_min = np.zeros((self.params.Tst.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+            t_fail_h_pmt_max = np.zeros((self.params.PmT.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+            t_fail_h_pmt_min = np.zeros((self.params.PmT.shape[0], self.params.fr_sens.shape[0]), dtype=np.float64)
+
+            self.t_fail_h_max[:, :] = (self.t_fail_h / 24.0).max(0)
+            self.t_fail_h_min[:, :] = (self.t_fail_h / 24.0).min(0)
+
+            """
+            Failures detected by the test when the PM or Test intervals vary -
+            The maximum value of DF on the various beta / alpha is plotted for each FR
+            :return:
+            """
+            plt.figure(5)
+            plt.grid(True)
+
+            for tst_sample in range(0, self.params.Tst.shape[0]):
+                temp_max = self.det_max[self.params.Tst.shape[0] * tst_sample:self.params.PmT.shape[0] * tst_sample +
+                                                                     self.params.PmT.shape[0] - 1, :]
+                temp_min = self.det_min[self.params.Tst.shape[0] * tst_sample:self.params.PmT.shape[0] * tst_sample +
+                                                                     self.params.PmT.shape[0] - 1, :]
+                det_tst_max[tst_sample, :] = temp_max.max(0)
+                det_tst_min[tst_sample, :] = temp_min.min(0)
+
+            for pmt_sample in range(0, self.params.PmT.shape[0]):
+                a_max = np.arange(pmt_sample, self.det_max.shape[0], len(self.params.PmT))
+                a_min = np.arange(pmt_sample, self.det_min.shape[0], len(self.params.PmT))
+                temp_max = self.det_max[a_max, :]
+                temp_min = self.det_min[a_min, :]
+                det_pmt_max[pmt_sample, :] = temp_max.max(0)
+                det_pmt_min[pmt_sample, :] = temp_min.min(0)
+
+            x_time = np.zeros((self.params.Tst.shape[0]), dtype=np.int64)
+
+            if len(self.params.Tst) > 1:
+                x_time[:] = self.params.Tst
+
+            for i in range(0, det_tst_max.shape[1]):
+                plt.plot(x_time, det_tst_max[:, i], linestyle='-', marker=self.params.plot_marker[i],
+                             color=self.params.plot_color[i], linewidth=2)
+            for i in range(0, det_tst_min.shape[1]):
+                plt.plot(x_time, det_tst_min[:, i], linestyle='--', marker=self.params.plot_marker[i],
+                             color=self.params.plot_color[i], linewidth=2)
+
+            fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
+            plt.title("Detected Failures vs. FR")
+            plt.legend(fr_legend, loc="best")
+            plt.xlabel("PM interval [years]")
+            plt.ylabel("N. expected failures")
+            plt.savefig(self.params.component + '/' + self.params.component + "_UnDet_TsT_Failures_Ext.png")
+
+            x_time = np.zeros((self.params.PmT.shape[0]), dtype=np.int64)
+
+            if len(self.params.PmT) > 1:
+                x_time[:] = self.params.PmT
+
+            for i in range(0, det_pmt_max.shape[1]):
+                plt.plot(x_time, det_pmt_max[:, i], linestyle='-', marker=self.params.plot_marker[i],
+                         color=self.params.plot_color[i], linewidth=2)
+            for i in range(0, det_pmt_min.shape[1]):
+                plt.plot(x_time, det_pmt_min[:, i], linestyle='--', marker=self.params.plot_marker[i],
+                         color=self.params.plot_color[i], linewidth=2)
+
+            fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
+            plt.title("Detected Failures vs. FR")
+            plt.legend(fr_legend, loc="best")
+            plt.xlabel("PM interval [years]")
+            plt.ylabel("N. expected failures")
+            plt.savefig(self.params.component + '/' + self.params.component + "_UnDet_PmT_Failures_Ext.png")
+
+            """
+            Failures not detected by the test when the PM or Test intervals vary
+            The maximum NDF value on the various beta / alpha is plotted for each FR
+            :return:
+            """
+            plt.figure(6)
+            plt.grid(True)
+
+            for tst_sample in range(0, self.params.Tst.shape[0]):
+                temp_max = self.undet_max[self.params.Tst.shape[0] * tst_sample:self.params.PmT.shape[0] * tst_sample +
+                                          self.params.PmT.shape[0] - 1, :]
+                temp_min = self.undet_min[self.params.Tst.shape[0] * tst_sample:self.params.PmT.shape[0] * tst_sample +
+                                          self.params.PmT.shape[0] - 1, :]
+                undet_tst_max[tst_sample, :] = temp_max.max(0)
+                undet_tst_min[tst_sample, :] = temp_min.min(0)
+
+            for pmt_sample in range(0, self.params.PmT.shape[0]):
+                a_max = np.arange(pmt_sample, self.undet_max.shape[0], len(self.params.PmT))
+                a_min = np.arange(pmt_sample, self.undet_min.shape[0], len(self.params.PmT))
+                temp_max = self.undet_max[a_max, :]
+                temp_min = self.undet_min[a_min, :]
+                undet_pmt_max[pmt_sample, :] = temp_max.max(0)
+                undet_pmt_min[pmt_sample, :] = temp_min.min(0)
+
+            x_time = np.zeros((self.params.Tst.shape[0]), dtype=np.int64)
+
+            if len(self.params.Tst) > 1:
+                x_time[:] = self.params.Tst
+
+            for i in range(0, undet_tst_max.shape[1]):
+                plt.plot(x_time, undet_tst_max[:, i], linestyle='-', marker=self.params.plot_marker[i],
+                         color=self.params.plot_color[i], linewidth=2)
+            for i in range(0, undet_tst_min.shape[1]):
+                plt.plot(x_time, undet_tst_min[:, i], linestyle='--', marker=self.params.plot_marker[i],
+                         color=self.params.plot_color[i], linewidth=2)
+
+            fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
+            plt.title("UnDetected Failures vs. FR")
+            plt.legend(fr_legend, loc="best")
+            plt.xlabel("Test interval [years]")
+            plt.ylabel("N. expected failures")
+            plt.savefig(self.params.component + '/' + self.params.component + "_Undet_TsT_Failures_Ext.png")
+
+            plt.figure(7)
+            plt.grid(True)
+
+            x_time = np.zeros((self.params.PmT.shape[0]), dtype=np.int64)
+
+            if len(self.params.PmT) > 1:
+                x_time[:] = self.params.PmT
+
+            for i in range(0, undet_pmt_max.shape[1]):
+                plt.plot(x_time, undet_pmt_max[:, i], linestyle='-', marker=self.params.plot_marker[i],
+                         color=self.params.plot_color[i], linewidth=2)
+            for i in range(0, undet_pmt_min.shape[1]):
+                plt.plot(x_time, undet_pmt_min[:, i], linestyle='--', marker=self.params.plot_marker[i],
+                         color=self.params.plot_color[i], linewidth=2)
+
+            fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
+            plt.title("UnDetected Failures vs. FR")
+            plt.legend(fr_legend, loc="best")
+            plt.xlabel("PM interval [years]")
+            plt.ylabel("N. expected failures")
+            plt.savefig(self.params.component + '/' + self.params.component + "_Undet_PmT_Failures_Ext.png")
+
+            """
+            Average time for which a faulty component with an FM hidden remains faulty before being adjusted / detected
+            The maximum value Time for the various beta / alpha is plotted for each FR
+            :return:
+            """
+            plt.figure(8)
+            plt.grid(True)
+
+            for tst_sample in range(0, self.params.Tst.shape[0]):
+                temp_max = self.t_fail_h_max[self.params.Tst.shape[0] * tst_sample:self.params.PmT.shape[0] * tst_sample +
+                                             self.params.PmT.shape[0] - 1, :]
+                temp_min = self.t_fail_h_min[self.params.Tst.shape[0] * tst_sample:self.params.PmT.shape[0] * tst_sample +
+                                             self.params.PmT.shape[0] - 1, :]
+                t_fail_h_tst_max[tst_sample, :] = temp_max.max(0)
+                t_fail_h_tst_min[tst_sample, :] = temp_min.min(0)
+
+            for pmt_sample in range(0, self.params.PmT.shape[0]):
+                a_max = np.arange(pmt_sample, self.t_fail_h_max.shape[0], len(self.params.PmT))
+                a_min = np.arange(pmt_sample, self.t_fail_h_max.shape[0], len(self.params.PmT))
+                temp_max = self.t_fail_h_max[a_max, :]
+                temp_min = self.t_fail_h_max[a_min, :]
+                t_fail_h_pmt_max[pmt_sample, :] = temp_max.max(0)
+                t_fail_h_pmt_min[pmt_sample, :] = temp_min.min(0)
+
+            x_time = np.zeros((self.params.Tst.shape[0]), dtype=np.int64)
+
+            if len(self.params.Tst) > 1:
+                x_time[:] = self.params.Tst
+
+            for i in range(0, t_fail_h_tst_max.shape[1]):
+                plt.plot(x_time, t_fail_h_tst_max[:, i], linestyle='-', marker=self.params.plot_marker[i],
+                         color=self.params.plot_color[i], linewidth=2)
+            for i in range(0, t_fail_h_tst_min.shape[1]):
+                plt.plot(x_time, t_fail_h_tst_min[:, i], linestyle='--', marker=self.params.plot_marker[i],
+                         color=self.params.plot_color[i], linewidth=2)
+
+            fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
+            plt.title("Undetected Time vs. FR")
+            plt.legend(fr_legend, loc="best")
+            plt.xlabel("PM interval [years]")
+            plt.ylabel("Time [days]")
+            plt.savefig(self.params.component + '/' + self.params.component + "_Time_Failures_TsT_Ext.png")
+
+            plt.figure(9)
+            plt.grid(True)
+
+            x_time = np.zeros((self.params.PmT.shape[0]), dtype=np.int64)
+
+            if len(self.params.PmT) > 1:
+                x_time[:] = self.params.PmT
+
+            for i in range(0, t_fail_h_pmt_max.shape[1]):
+                plt.plot(x_time, t_fail_h_pmt_max[:, i], linestyle='-', marker=self.params.plot_marker[i],
+                         color=self.params.plot_color[i], linewidth=2)
+            for i in range(0, t_fail_h_pmt_min.shape[1]):
+                plt.plot(x_time, t_fail_h_pmt_min[:, i], linestyle='--', marker=self.params.plot_marker[i],
+                         color=self.params.plot_color[i], linewidth=2)
+
+            fr_legend = ["FR x " + str(i) for i in self.params.fr_sens]
+            plt.title("Undetected Time vs. FR")
+            plt.legend(fr_legend, loc="best")
+            plt.xlabel("PM interval [years]")
+            plt.ylabel("Time [days]")
+            plt.savefig(self.params.component + '/' + self.params.component + "_Time_Failures_PmT_Ext.png")
+
 
 class InputParams:
     def __init__(self, component):
@@ -809,9 +1031,9 @@ class Root(Tk):
     def simulate_test(self):
         params = self.load_input_params()
         simulate = Simulate(params)
-        simulate.print_params()
+        # simulate.print_params()
         simulate.run_cost_test()
-        simulate.plot_mandatory_results()
+        simulate.plot_results()
 
     def start_process(self):
         t1 = Process(target=self.simulate_test)
@@ -1267,7 +1489,7 @@ class Root(Tk):
     def to_tab2(self):
         self.tab_control.tab(1, state="normal")
         self.tab_control.select(self.tab2)
-        self.geometry('530x700')
+        self.geometry('680x700')
         self.tab_control.tab(0, state="disabled")
 
     def load_input_params(self):
@@ -1944,6 +2166,15 @@ class Root(Tk):
         label_frame_0.config(width=200, height=20)
         label_frame_0.grid(column=0, row=12, padx=(20, 0), columnspan=4, sticky=W)
 
+        label_frame_3 = ttk.LabelFrame(self.tab2, text="Description", height=20, width=40)
+        label_frame_3.config(width=200, height=20)
+        label_frame_3.grid(column=4, row=12, columnspan=4, sticky=W)
+
+        ttk.Label(label_frame_3, text="Effect Matrix describes the effect of \nthe failure mode on the other, "
+                                      "\nthe value ranges can be between \n0 and 1, where 0 \nindicates no effect "
+                                      "\nand 1 indicates the highest"
+                                      ".").grid(row=0, column=0, sticky="W", padx=(5, 0))
+
         mode = 0
         for mode in range(1, 6):
             ttk.Label(label_frame_0, text="FM" + str(mode) + ": ").grid(row=2+mode, column=0,
@@ -1963,14 +2194,14 @@ class Root(Tk):
         # Label Frame
         label_frame_1 = ttk.LabelFrame(self.tab2, text="Compatibility Matrix", height=20, width=10)
         label_frame_1.config(width=100, height=20)
-        label_frame_1.grid(column=0,  row=14, padx=(10, 0), pady=10, columnspan=2)
+        label_frame_1.grid(column=4,  row=14, padx=(20, 0), pady=10, columnspan=4)
 
         ttk.Label(label_frame_1, text="Corrective").grid(row=0, column=2, sticky=N+E+S+W, pady=(0, 2))
-        ttk.Label(label_frame_1, text="Preventive").grid(row=0, column=4, sticky=N+E+S+W, pady=(0, 2))
+        ttk.Label(label_frame_1, text="Preventive").grid(row=0, column=4, sticky=N+E+S+W, pady=(0, 2), padx=(0, 45))
 
         for mode in range(1, 6):
             ttk.Label(label_frame_1, text="FM" + str(mode) + ": ").grid(row=2 + mode, column=0,
-                                                                        sticky="W", padx=(20, 0), pady=2)
+                                                                        sticky="W", pady=2)
 
             corrective_entry = ttk.Entry(label_frame_1, textvariable=self.fm_corrective[mode - 1], width=5)
             corrective_entry.config(state=DISABLED)
@@ -1981,14 +2212,14 @@ class Root(Tk):
 
             preventive_entry = ttk.Entry(label_frame_1, textvariable=self.fm_preventive[mode - 1], width=5)
             preventive_entry.config(state=DISABLED)
-            preventive_entry.grid(row=mode + 2, column=4, sticky=W, pady=2)
+            preventive_entry.grid(row=mode + 2, column=4, sticky=W, pady=2, padx=(0, 45))
 
             self.fm_preventive_entry.append(preventive_entry)
 
         # Label Frame
         label_frame_2 = ttk.LabelFrame(self.tab2, text="Simulation Parameters", height=20, width=10)
         label_frame_2.config(width=200, height=20)
-        label_frame_2.grid(column=2, row=14, padx=(2, 0), pady=10, columnspan=2)
+        label_frame_2.grid(column=0, row=14, padx=(20, 0), pady=10, columnspan=4)
 
         # Number of Monte carlo Simulations
         ttk.Label(label_frame_2, text="N. MonteCarlo Simulations: ").grid(row=0, column=0, sticky="W", padx=(5, 0))
@@ -1997,17 +2228,17 @@ class Root(Tk):
 
         ttk.Label(label_frame_2, text="Step Size: ").grid(row=2, column=0, padx=(5, 0), sticky=W)
         step_size_entry = ttk.Entry(label_frame_2, textvariable=self.step_size, width=6)
-        step_size_entry.grid(row=2, column=1, sticky=W, pady=(2, 0))
+        step_size_entry.grid(row=2, column=1, sticky=W, pady=(2, 0), padx=(0, 70))
 
         ttk.Label(label_frame_2, text="FR Sensitivity\nMin.(\u03BB): ").grid(row=4, column=0, padx=(5, 0),
                                                                              sticky=W)
         sensitivity_range_min_entry = ttk.Entry(label_frame_2, textvariable=self.fr_sens_min, width=6)
-        sensitivity_range_min_entry.grid(row=4, column=1, sticky=W)
+        sensitivity_range_min_entry.grid(row=4, column=1, sticky=W, padx=(0, 70))
 
         ttk.Label(label_frame_2, text="FR Sensitivity\nMax.(\u03BB).:").grid(row=6, column=0, padx=(5, 0),
                                                                              sticky=W)
         sensitivity_range_min_entry = ttk.Entry(label_frame_2, textvariable=self.fr_sens_max, width=6)
-        sensitivity_range_min_entry.grid(row=6, column=1, sticky=W)
+        sensitivity_range_min_entry.grid(row=6, column=1, sticky=W, padx=(0, 70))
 
         # Proposed test interval (y)
         ttk.Label(label_frame_2, text="Proposed Test Interval\n(Min. Yr): ").grid(row=8, column=0, padx=(5, 0),
@@ -2020,22 +2251,22 @@ class Root(Tk):
                                                                                   sticky=W)
 
         proposed_test_interval_max_entry = ttk.Entry(label_frame_2, textvariable=self.Tst_max, width=6)
-        proposed_test_interval_max_entry.grid(row=10, column=1,  sticky=W)
+        proposed_test_interval_max_entry.grid(row=10, column=1,  sticky=W, padx=(0, 70))
 
         # navigation Buttons
         self.back_button = ttk.Button(self.tab2, text='Back', command=self.to_tab1)
         self.back_button.grid(row=49, column=0, sticky=W, padx=(20, 0))
 
         self.start_button = ttk.Button(self.tab2, text='Start', command=self.start_rcm)
-        self.start_button.grid(row=49, column=3, sticky=E)
+        self.start_button.grid(row=49, column=7, sticky=E)
 
         self.progressbar = ttk.Progressbar(self.tab2, mode='indeterminate', length=20)
-        self.progressbar.grid(row=50, column=0, columnspan=4, sticky=N + E + W + S, padx=(20, 0))
+        self.progressbar.grid(row=50, column=0, columnspan=8, sticky=N + E + W + S, padx=(20, 0))
         self.progressbar.state(['disabled'])
 
         self.stop_button = ttk.Button(self.tab2, text='Stop', command=self.stop_rcm, state=DISABLED)
 
-        self.stop_button.grid(row=51, column=0, columnspan=4, sticky=N + E + W + S, padx=(20, 0))
+        self.stop_button.grid(row=51, column=0, columnspan=8, sticky=N + E + W + S, padx=(20, 0))
 
 
 if __name__ == "__main__":
