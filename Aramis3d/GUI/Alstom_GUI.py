@@ -443,8 +443,10 @@ class Simulate:
             cost_pmt_min[pmt_sample, :] = temp_min.min(0)
 
         # Turn ON grid
+        print("IN")
         plt.figure(0)
         plt.grid(True)
+        print("Out")
         for i in range(0, cost_tst_max.shape[1]):
             plt.plot(x_time, cost_tst_max[:, i], linestyle='-', marker=self.params.plot_marker[i],
                      color=self.params.plot_color[i], linewidth=2)
@@ -457,8 +459,8 @@ class Simulate:
         plt.legend(fr_legend, loc="upper right")
         plt.xlabel("Test interval [years]")
         plt.ylabel("Total maintenance cost")
+        print("In")
         plt.savefig(self.params.component + '/' + self.params.component + "_Cost_TsT.png")
-        # plt.show(block=False)
 
         plt.figure(1)
         plt.grid(True)
@@ -481,7 +483,6 @@ class Simulate:
         plt.xlabel("PM interval [years]")
         plt.ylabel("Total maintenance cost")
         plt.savefig(self.params.component + '/' + self.params.component + "_Cost_PmT.png")
-        # plt.show(block=False)
 
         """
         costs according to lambda values ​​-
@@ -507,7 +508,6 @@ class Simulate:
         plt.xlabel("Relative Lambda")
         plt.ylabel("Total maintenance cost")
         plt.savefig(self.params.component + '/' + self.params.component + "_Cost_Scheme.png")
-        # plt.show(block=False)
 
         """
         ENF when PM intervals vary -
@@ -558,7 +558,6 @@ class Simulate:
         plt.xlabel("Test interval [years]")
         plt.ylabel("N. expected failures")
         plt.savefig(self.params.component + '/' + self.params.component + "_TsT_Failures.png")
-        # plt.show(block=False)
 
         plt.figure(4)
         plt.grid(True)
@@ -580,7 +579,6 @@ class Simulate:
         plt.xlabel("PM interval [years]")
         plt.ylabel("N. expected failures")
         plt.savefig(self.params.component + '/' + self.params.component + "_PmT_Failures.png")
-        # plt.show()
 
     def plot_is_hidden_results(self):
         if np.sum(self.params.hidden) > 0:
@@ -649,7 +647,7 @@ class Simulate:
             plt.legend(fr_legend, loc="best")
             plt.xlabel("PM interval [years]")
             plt.ylabel("N. expected failures")
-            plt.savefig(self.params.component + '/' + self.params.component + "_UnDet_TsT_Failures_Ext.png")
+            plt.savefig(self.params.component + '/' + self.params.component + "_Det_TsT_Failures_Ext.png")
 
             x_time = np.zeros((self.params.PmT.shape[0]), dtype=np.int64)
 
@@ -668,7 +666,7 @@ class Simulate:
             plt.legend(fr_legend, loc="best")
             plt.xlabel("PM interval [years]")
             plt.ylabel("N. expected failures")
-            plt.savefig(self.params.component + '/' + self.params.component + "_UnDet_PmT_Failures_Ext.png")
+            plt.savefig(self.params.component + '/' + self.params.component + "_Det_PmT_Failures_Ext.png")
 
             """
             Failures not detected by the test when the PM or Test intervals vary
