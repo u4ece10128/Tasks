@@ -809,9 +809,11 @@ class Root(Tk):
         super(Root, self).__init__()
         # Root Window Settings
         self.title("Alstom Control Application")
-        self.geometry('1120x760')
-        self.maxsize(width=1120, height=760)
-        self.iconbitmap('0.ico')
+        self.geometry('960x670')
+        # self.geometry('1120x760')# MAC OS
+        # self.maxsize(width=1120, height=760)
+        self.maxsize(width=960, height=670)
+        self.iconbitmap('aramis_icon.ico')
         self.resizable(0, 0)
         self.configure(background='DimGray')
 
@@ -1481,13 +1483,15 @@ class Root(Tk):
     def to_tab1(self):
         self.tab_control.tab(0, state="normal")
         self.tab_control.select(self.tab1)
-        self.geometry('1120x760')
+        # self.geometry('1120x760') # mac OS
+        self.geometry('960x670')
         self.tab_control.tab(1, state="disabled")
 
     def to_tab2(self):
         self.tab_control.tab(1, state="normal")
         self.tab_control.select(self.tab2)
-        self.geometry('680x700')
+        # self.geometry('680x700') # MAC OS
+        self.geometry('530x620')
         self.tab_control.tab(0, state="disabled")
 
     def load_input_params(self):
@@ -1785,7 +1789,7 @@ class Root(Tk):
     @staticmethod
     def add_logo(tab):
         # Logo - Start
-        image = Image.open("0.jpg")
+        image = Image.open("aramis_logo.jpg")
         image = image.resize((350, 150), Image.ANTIALIAS)
         photo = ImageTk.PhotoImage(image)
         label = ttk.Label(tab, image=photo)
