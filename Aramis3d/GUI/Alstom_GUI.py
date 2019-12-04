@@ -810,9 +810,9 @@ class Root(Tk):
         # Root Window Settings
         self.title("Alstom Control Application")
         self.geometry('960x670')
-        # self.geometry('1120x760')# MAC OS
-        # self.maxsize(width=1120, height=760)
-        self.maxsize(width=960, height=670)
+        self.geometry('1120x760')# MAC OS
+        self.maxsize(width=1120, height=760)
+        # self.maxsize(width=960, height=670)
         self.iconbitmap('aramis_icon.ico')
         self.resizable(0, 0)
         self.configure(background='DimGray')
@@ -1031,9 +1031,9 @@ class Root(Tk):
     def simulate_test(self):
         params = self.load_input_params()
         simulate = Simulate(params)
-        # simulate.print_params()
-        simulate.run_cost_test()
-        simulate.plot_results()
+        simulate.print_params()
+        # simulate.run_cost_test()
+        # simulate.plot_results()
 
     def start_process(self):
         t1 = Process(target=self.simulate_test)
@@ -1046,6 +1046,7 @@ class Root(Tk):
             self.disable_button()
             self.progressbar.start()
             p = self.start_process()
+            p.daemon = True
             p.start()
             self.after(100, self.process)
 
@@ -1483,15 +1484,15 @@ class Root(Tk):
     def to_tab1(self):
         self.tab_control.tab(0, state="normal")
         self.tab_control.select(self.tab1)
-        # self.geometry('1120x760') # mac OS
-        self.geometry('960x670')
+        self.geometry('1120x760') # mac OS
+        # self.geometry('960x670')
         self.tab_control.tab(1, state="disabled")
 
     def to_tab2(self):
         self.tab_control.tab(1, state="normal")
         self.tab_control.select(self.tab2)
-        # self.geometry('680x700') # MAC OS
-        self.geometry('530x620')
+        self.geometry('680x700') # MAC OS
+        # self.geometry('530x620') # Windows
         self.tab_control.tab(0, state="disabled")
 
     def load_input_params(self):
@@ -1658,19 +1659,20 @@ class Root(Tk):
             else:
                 non_hidden_list.append(input_params.Tau[mode, 0])
 
-        print(hidden_list)
-        print(non_hidden_list)
         # minimum of non hidden failure mode prediction interval
         if len(non_hidden_list) != 0:
             input_params.PmT = np.arange(min(non_hidden_list)/12, input_params.Life, self.step_size.get())
+        else:
+            input_params.PmT = np.r_[input_params.Life]
 
         # minimum of minimum prediction interval and Min Proposed Tst interval
         if len(hidden_list) != 0:
             if min(hidden_list)/12 <= self.Tst_min.get():
                 input_params.Tst = np.arange(min(hidden_list)/12, self.Tst_max.get(), self.step_size.get())
             else:
-                input_params.Tst = np.arange(self.Tst_min.get(), self.Tst_max.get(), self.step_size.get())
-
+                input_params.Tst = np.arange(self.Tst_min.get(), self.Tst_max.get()+1, self.step_size.get())
+        else:
+            input_params.Tst = np.r_[input_params.Life]
         # Conversions
         input_params.conversion_factor = np.round((365 / 12) * input_params.h_day, decimals=5)
         input_params.Tau = input_params.Tau * input_params.conversion_factor
@@ -1761,8 +1763,8 @@ class Root(Tk):
             self.is_hidden[i-1].set(0)
             self.percentage_fm[i-1].set(0)
             self.prediction_interval_params[i-1].set(0)
-            self.fm_corrective[i-1].set(0)
-            self.fm_preventive[i-1].set(0)
+            self.fm_corrective[i-1].set(1.0)
+            self.fm_preventive[i-1].set(1)
             self.options_menu[i-1].set(self.options[0])
 
         size = self.fail_mode.get()
@@ -2209,12 +2211,17 @@ class Root(Tk):
             corrective_entry.config(state=DISABLED)
             corrective_entry.grid(row=mode + 2, column=2, sticky=W, pady=2)
 
+            # set to default = 1.0
+            self.fm_corrective[mode-1].set(1.0)
             # store the check button widget
             self.fm_corrective_entry.append(corrective_entry)
 
             preventive_entry = ttk.Entry(label_frame_1, textvariable=self.fm_preventive[mode - 1], width=5)
             preventive_entry.config(state=DISABLED)
             preventive_entry.grid(row=mode + 2, column=4, sticky=W, pady=2, padx=(0, 45))
+
+            # set to default = 1.0
+            self.fm_preventive[mode - 1].set(1)
 
             self.fm_preventive_entry.append(preventive_entry)
 
@@ -2228,19 +2235,30 @@ class Root(Tk):
         mc_simulations_entry = ttk.Entry(label_frame_2, textvariable=self.N_sim, width=6)
         mc_simulations_entry.grid(row=0, column=1, sticky=W)
 
+        # defualt setting to 10000
+        self.N_sim.set(10000)
         ttk.Label(label_frame_2, text="Step Size: ").grid(row=2, column=0, padx=(5, 0), sticky=W)
         step_size_entry = ttk.Entry(label_frame_2, textvariable=self.step_size, width=6)
         step_size_entry.grid(row=2, column=1, sticky=W, pady=(2, 0), padx=(0, 70))
+
+        # set to default
+        self.step_size.set(1.0)
 
         ttk.Label(label_frame_2, text="FR Sensitivity\nMin.(\u03BB): ").grid(row=4, column=0, padx=(5, 0),
                                                                              sticky=W)
         sensitivity_range_min_entry = ttk.Entry(label_frame_2, textvariable=self.fr_sens_min, width=6)
         sensitivity_range_min_entry.grid(row=4, column=1, sticky=W, padx=(0, 70))
 
+        # set to default
+        self.fr_sens_min.set(0.5)
+
         ttk.Label(label_frame_2, text="FR Sensitivity\nMax.(\u03BB).:").grid(row=6, column=0, padx=(5, 0),
                                                                              sticky=W)
         sensitivity_range_min_entry = ttk.Entry(label_frame_2, textvariable=self.fr_sens_max, width=6)
         sensitivity_range_min_entry.grid(row=6, column=1, sticky=W, padx=(0, 70))
+
+        # set to default
+        self.fr_sens_max.set(2.0)
 
         # Proposed test interval (y)
         ttk.Label(label_frame_2, text="Proposed Test Interval\n(Min. Yr): ").grid(row=8, column=0, padx=(5, 0),
@@ -2249,12 +2267,16 @@ class Root(Tk):
         proposed_test_interval_min_entry = ttk.Entry(label_frame_2, textvariable=self.Tst_min, width=6)
         proposed_test_interval_min_entry.grid(row=8, column=1, sticky=W)
 
+        # set to default
+        self.Tst_min.set(1)
+
         ttk.Label(label_frame_2, text="Proposed Test Interval\n(Max. Yr): ").grid(row=10, column=0, padx=(5, 0),
                                                                                   sticky=W)
 
         proposed_test_interval_max_entry = ttk.Entry(label_frame_2, textvariable=self.Tst_max, width=6)
         proposed_test_interval_max_entry.grid(row=10, column=1,  sticky=W, padx=(0, 70))
 
+        self.Tst_max.set(15)
         # navigation Buttons
         self.back_button = ttk.Button(self.tab2, text='Back', command=self.to_tab1)
         self.back_button.grid(row=49, column=0, sticky=W, padx=(20, 0))
